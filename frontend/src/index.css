@@ -1,0 +1,10 @@
+@import "tailwindcss";
+
+/* Forces Tailwind v4 to respect the manual 'dark' class applied to the HTML root */
+@variant dark (&:where(.dark, .dark *));
+
+@layer base {
+  body {
+    @apply transition-colors duration-50 ease-in-out antialiased;
+  }
+}
