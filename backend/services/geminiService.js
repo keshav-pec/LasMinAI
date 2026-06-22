@@ -3,7 +3,9 @@ require('dotenv').config();
 
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
-// The blueprint Gemini MUST follow
+// ==========================================
+// 1. SCHEDULING BLUEPRINT & CONFIGURATION
+// ==========================================
 const scheduleSchema = {
   type: Type.OBJECT,
   properties: {
@@ -65,13 +67,89 @@ const generateAgenticSchedule = async (prioritizedTasks, availableHours = 8) => 
       }
     });
 
-    // The output is perfectly structured JSON ready for Google Calendar API
     return JSON.parse(response.text);
-
   } catch (error) {
     console.error('❌ AI Scheduling Error:', error);
     throw error;
   }
 };
 
-module.exports = { generateAgenticSchedule };
+// ==========================================
+// 2. CHAT PARSING & INTENT EXTRACTION
+// ==========================================
+const intentSchema = {
+  type: Type.OBJECT,
+  properties: {
+    conversationalReply: { 
+      type: Type.STRING, 
+      description: "A natural, helpful response confirming the action or asking for missing details." 
+    },
+    isTaskExtracted: { 
+      type: Type.BOOLEAN, 
+      description: "True if the user's message contained enough info to log a commitment." 
+    },
+    extractedTask: {
+      type: Type.OBJECT,
+      description: "Populate only if isTaskExtracted is true.",
+      properties: {
+        title: { type: Type.STRING, description: "A concise title for the task." },
+        deadline: { type: Type.STRING, description: "ISO 8601 date string representing the exact deadline." },
+        complexity: { type: Type.NUMBER, description: "Scale of 1-10. Default to 5 if not specified." },
+        technicalEffort: { type: Type.NUMBER, description: "Estimated hours to complete. Default to 2 if not specified." }
+      }
+    }
+  },
+  required: ["conversationalReply", "isTaskExtracted"]
+};
+
+/**
+ * Parses user chat input to extract actionable task data and generate a reply.
+ */
+const parseUserMessage = async (userMessage, history = []) => {
+  try {
+    const now = new Date();
+    
+    // Explicit instructions to use Markdown and act contextually
+    const systemPrompt = `
+      You are LasMinAI, an advanced productivity agent.
+      Current Date/Time: ${now.toISOString()}
+      User Timezone: Asia/Kolkata (IST)
+
+      Instructions:
+      1. Analyze the user's latest message alongside the conversation history.
+      2. If they are logging a task, extract the parameters and set isTaskExtracted to true. Convert relative times (like "tomorrow") to ISO timestamps.
+      3. CRITICAL: In your 'conversationalReply', you MUST use Markdown extensively. Use **bolding** for important terms (task names, deadlines), use bullet points for lists, and use line breaks to make your response highly readable.
+      4. NEVER echo the user's prompt. Answer intelligently. If they say a generic greeting, greet them back and ask how you can assist their productivity today.
+    `;
+
+    // Map the React history array into the exact schema Gemini requires
+    const formattedContents = history.map(msg => ({
+      role: msg.role === 'ai' ? 'model' : 'user',
+      parts: [{ text: msg.content }]
+    }));
+    
+    // Append the current message
+    formattedContents.push({ role: 'user', parts: [{ text: userMessage }] });
+
+    const response = await ai.models.generateContent({
+      model: 'gemini-3.1-flash-lite',
+      contents: formattedContents,
+      config: {
+        systemInstruction: systemPrompt,
+        responseMimeType: 'application/json',
+        responseSchema: intentSchema,
+        temperature: 0.2, 
+      }
+    });
+
+    return JSON.parse(response.text);
+  } catch (error) {
+    console.error('❌ Intent Parsing Error:', error);
+    throw error;
+  }
+};
+
+module.exports = { 
+  generateAgenticSchedule,
+  parseUserMessage 
+};

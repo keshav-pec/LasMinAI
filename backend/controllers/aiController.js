@@ -1,7 +1,5 @@
-// backend/controllers/aiController.js
 const { generateAgenticSchedule } = require('../services/geminiService');
-const Task = require('../models/Task');
-const { calculatePriorityScore } = require('../utils/priorityCalculator');
+const { getSortedPendingTasks } = require('../services/taskService');
 const { pushScheduleToCalendar } = require('../services/calendarService');
 const { oauth2Client } = require('../routes/authRoutes');
 
@@ -10,9 +8,11 @@ exports.getAiSchedule = async (req, res) => {
     const { availableHours } = req.query;
     const hours = availableHours ? parseInt(availableHours) : 8;
 
-    const tasks = await Task.find({ status: { $ne: 'completed' } });
+    // Fetch and dynamically score/sort tasks via the abstracted service method
+    const dynamicallySortedTasks = await getSortedPendingTasks();
 
-    if (tasks.length === 0) {
+    // Check if there are no pending tasks to process
+    if (!dynamicallySortedTasks || dynamicallySortedTasks.length === 0) {
       return res.status(200).json({
         success: true,
         message: "No pending tasks found to schedule.",
@@ -20,27 +20,13 @@ exports.getAiSchedule = async (req, res) => {
       });
     }
 
-    const dynamicallySortedTasks = tasks.map(task => {
-      const currentScore = calculatePriorityScore(task.deadline, task.complexity, task.technicalEffort);
-      return {
-        title: task.title,
-        description: task.description,
-        deadline: task.deadline,
-        complexity: task.complexity,
-        technicalEffort: task.technicalEffort,
-        priorityScore: currentScore
-      };
-    });
-
-    dynamicallySortedTasks.sort((a, b) => b.priorityScore - a.priorityScore);
-
-    // Call your optimized Gemini configuration
+    // Pass the pre-sorted tasks directly into your optimized Gemini engine
     const aiSchedule = await generateAgenticSchedule(dynamicallySortedTasks, hours);
 
     let calendarLinks = [];
     let calendarStatus = "Skipped - No active Google session found. Please hit /api/auth/google first.";
 
-    // Verify token presence explicitly
+    // Explicitly verify token state and publish to Google Calendar
     if (global.googleTokens && Object.keys(global.googleTokens).length > 0) {
       oauth2Client.setCredentials(global.googleTokens);
       calendarLinks = await pushScheduleToCalendar(oauth2Client, aiSchedule.calendarEvents);

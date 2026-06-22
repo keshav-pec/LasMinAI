@@ -3,6 +3,8 @@ const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const { router: authRoutes } = require('./routes/authRoutes');
+const chatRoutes = require('./routes/chatRoutes');
+
 const app = express();
 
 // Middleware
@@ -22,6 +24,7 @@ const taskRoutes = require('./routes/taskRoutes');
 app.use('/api/ai', aiRoutes);
 app.use('/api/tasks', taskRoutes);
 app.use('/api/auth', authRoutes);
+app.use('/api/chat', chatRoutes);
 
 // Basic Health Check Route
 app.get('/api/health', (req, res) => {

@@ -1,5 +1,6 @@
 const Task = require('../models/Task');
 const { calculatePriorityScore } = require('../utils/priorityCalculator');
+const { getSortedPendingTasks } = require('../services/taskService');
 
 // Create a new task and compute its initial priority score
 exports.createTask = async (req, res) => {
@@ -33,16 +34,8 @@ exports.createTask = async (req, res) => {
 // Retrieve all pending tasks ordered by priority score descending
 exports.getPrioritizedTasks = async (req, res) => {
   try {
-    // Dynamically recalculate scores on fetch to account for passing time
-    const tasks = await Task.find({ status: { $ne: 'completed' } });
-    
-    const updatedTasks = await Promise.all(tasks.map(async (task) => {
-      task.priorityScore = calculatePriorityScore(task.deadline, task.complexity, task.technicalEffort);
-      return await task.save();
-    }));
-
-    // Sort tasks so the highest priority items appear first
-    updatedTasks.sort((a, b) => b.priorityScore - a.priorityScore);
+    // ONE LINE REPLACES THE MANUAL DB MAP, SAVE, AND SORT LOOPS
+    const updatedTasks = await getSortedPendingTasks();
 
     res.status(200).json({ success: true, data: updatedTasks });
   } catch (error) {

@@ -19,7 +19,7 @@ export default function Auth() {
         <motion.div 
           animate={{ x: [20, -20, 20], y: [20, -20, 20], opacity: [0.2, 0.4, 0.2] }}
           transition={{ duration: 12, repeat: Infinity, ease: "linear" }}
-          className="absolute -bottom-1/4 -right-1/4 w-[600px] h-[600px] bg-indigo-500/20 dark:bg-indigo-600/10 rounded-full blur-[120px]" 
+          className="absolute -bottom-1/4 -right-1/4 w-[600px] h-[600px] bg-slate-500/20 dark:bg-slate-600/10 rounded-full blur-[120px]" 
         />
       </div>
 
@@ -34,7 +34,7 @@ export default function Auth() {
             initial={{ scale: 0 }}
             animate={{ scale: 1 }}
             transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
-            className="w-16 h-16 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl flex items-center justify-center shadow-lg shadow-blue-500/30 mb-6"
+            className="w-16 h-16 bg-gradient-to-br from-blue-400 to-blue-600 rounded-2xl flex items-center justify-center shadow-lg shadow-blue-500/30 mb-6"
           >
             <Zap className="w-8 h-8 text-white fill-white/20" />
           </motion.div>
