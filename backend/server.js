@@ -14,18 +14,18 @@ mongoose.connect(process.env.MONGO_URI)
   .then(() => console.log('✅ MongoDB Atlas connected successfully'))
   .catch((err) => console.error('❌ MongoDB connection error:', err));
 
-// --- NEW ROUTE IMPORTS ---
+// ROUTE IMPORTS
 const aiRoutes = require('./routes/aiRoutes');
+const taskRoutes = require('./routes/taskRoutes');
 
-// --- ROUTE MIDDLEWARE ---
+// ROUTE MIDDLEWARE
 app.use('/api/ai', aiRoutes);
+app.use('/api/tasks', taskRoutes);
 
 // Basic Health Check Route
 app.get('/api/health', (req, res) => {
   res.status(200).json({ status: 'LasMinAI server is active and breathing.' });
 });
-
-// We will import our Task routes here shortly...
 
 const PORT = process.env.PORT || 5050;
 app.listen(PORT, () => {
