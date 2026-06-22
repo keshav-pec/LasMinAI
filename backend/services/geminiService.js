@@ -44,16 +44,18 @@ const generateAgenticSchedule = async (prioritizedTasks, availableHours = 8) => 
       Instructions:
       1. Analyze the 'technicalEffort' (estimated hours) and 'complexity' (1-10 scale) of each task.
       2. Schedule the tasks into logical blocks for a Google Calendar integration.
-      3. If a task requires more effort than available hours, chunk it into a smaller block.
-      4. Generate 2 personalized productivity recommendations acknowledging the specific workload (e.g., suggesting a 15-minute screen break after a high-complexity coding task).
-      5. Use a motivating tone for the recommendations.
+      3. Remember that the user would be expecting the Asia/Kolkata timezone.
+      4. If a task requires more effort than available hours, chunk it into a smaller block.
+      5. Generate 2 personalized productivity recommendations acknowledging the specific workload (e.g., suggesting a 15-minute screen break after a high-complexity coding task).
+      6. Include emojis in your output (not much but frequently).
+      7. Use a motivating and enthusiastic tone for the recommendations.
 
       Raw Task Data:
       ${JSON.stringify(prioritizedTasks, null, 2)}
     `;
 
     const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash-lite',
+      model: 'gemini-3.1-flash-lite',
       contents: `Raw Task Data:\n${JSON.stringify(prioritizedTasks, null, 2)}`, // Keep prompt tiny!
       config: {
         systemInstruction: prompt,
