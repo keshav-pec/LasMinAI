@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Send, Mic, Zap, ChevronLeft, ChevronRight, AlertTriangle, CheckCircle2, Clock, BrainCircuit, Check } from 'lucide-react';
+import { Send, Mic, Zap, ChevronLeft, ChevronRight, CheckCircle2, Clock, BrainCircuit, Check } from 'lucide-react';
 import axios from 'axios';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
