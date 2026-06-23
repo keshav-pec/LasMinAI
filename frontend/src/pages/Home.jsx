@@ -16,9 +16,17 @@ export default function Home({ isAuthenticated }) {
   return (
     <div className="min-h-[calc(100vh-73px)] flex flex-col items-center justify-center relative overflow-hidden px-6 bg-white dark:bg-[#131314]">
       
-      {/* Pure Blue/Grey Glow */}
-      <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-blue-500/10 rounded-full blur-[120px] pointer-events-none" />
-      <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-slate-500/10 rounded-full blur-[120px] pointer-events-none" />
+      {/* Animated Mesh Gradients */}
+      <motion.div 
+        animate={{ scale: [1, 1.2, 1], rotate: [0, 90, 0] }} 
+        transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
+        className="absolute top-1/4 left-1/4 w-[500px] h-[500px] bg-blue-200/20 dark:bg-blue-500/10 rounded-full blur-[120px] pointer-events-none" 
+      />
+      <motion.div 
+        animate={{ scale: [1, 1.5, 1], rotate: [0, -90, 0] }} 
+        transition={{ duration: 25, repeat: Infinity, ease: "linear" }}
+        className="absolute bottom-1/4 right-1/4 w-[500px] h-[500px] bg-slate-600/20 dark:bg-slate-500/10 rounded-full blur-[120px] pointer-events-none" 
+      />
 
       <motion.div variants={containerVariants} initial="hidden" animate="visible" className="max-w-4xl text-center z-10">
         
@@ -36,15 +44,15 @@ export default function Home({ isAuthenticated }) {
         <motion.div variants={itemVariants} className="flex flex-col sm:flex-row items-center justify-center gap-4">
           {isAuthenticated ? (
             <>
-              <Link to="/task-prompter" className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-8 py-4 rounded-full font-medium transition-all shadow-lg shadow-blue-600/20">
+              <Link to="/task-prompter" className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-8 py-4 rounded-full font-medium transition-all shadow-lg shadow-blue-600/20 cursor-pointer">
                 Launch Task Prompter
               </Link>
-              <Link to="/work-station" className="flex items-center gap-2 bg-neutral-900 dark:bg-neutral-100 hover:bg-neutral-800 dark:hover:bg-white text-white dark:text-neutral-900 px-8 py-4 rounded-full font-medium transition-all shadow-lg">
+              <Link to="/work-station" className="flex items-center gap-2 bg-neutral-900 dark:bg-neutral-100 hover:bg-neutral-800 dark:hover:bg-white text-white dark:text-neutral-900 px-8 py-4 rounded-full font-medium transition-all shadow-lg cursor-pointer">
                 Enter Work Station
               </Link>
             </>
           ) : (
-            <Link to="/auth" className="flex items-center gap-2 bg-neutral-900 dark:bg-neutral-100 hover:bg-neutral-800 dark:hover:bg-white text-white dark:text-neutral-900 px-8 py-4 rounded-full font-medium transition-all">
+            <Link to="/auth" className="flex items-center gap-2 bg-neutral-900 dark:bg-neutral-100 hover:bg-neutral-800 dark:hover:bg-white text-white dark:text-neutral-900 px-8 py-4 rounded-full font-medium transition-all cursor-pointer">
               Initialize Connection
             </Link>
           )}
@@ -53,15 +61,22 @@ export default function Home({ isAuthenticated }) {
         {/* Feature Grid */}
         <motion.div variants={itemVariants} className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-20 text-left pb-10">
           {[
-             { icon: BrainCircuit, title: "Algorithmic Routing", desc: "Prioritizes tasks using mathematical complexity and effort weighting." },
-             { icon: Calendar, title: "Autonomous Sync", desc: "Pushes optimized time-blocks directly to your Google Calendar." },
-             { icon: Zap, title: "Agentic Execution", desc: "Generates cognitive break schedules and technical execution strategies." }
+             { icon: BrainCircuit, title: "Algorithmic Routing", desc: "Prioritizes tasks using mathematical complexity and effort weighting.", delay: 0 },
+             { icon: Calendar, title: "Autonomous Sync", desc: "Pushes optimized time-blocks directly to your Google Calendar.", delay: 0.2 },
+             { icon: Zap, title: "Agentic Execution", desc: "Generates cognitive break schedules and technical execution strategies.", delay: 0.4 }
           ].map((feature, i) => (
-            <div key={i} className="p-6 rounded-2xl bg-neutral-50 dark:bg-[#1E1F20] border border-neutral-200 dark:border-neutral-800">
-              <feature.icon className="w-6 h-6 text-blue-500 mb-4" />
-              <h3 className="font-semibold text-neutral-900 dark:text-white mb-2">{feature.title}</h3>
-              <p className="text-sm text-neutral-600 dark:text-neutral-400">{feature.desc}</p>
-            </div>
+            <motion.div 
+              key={i} 
+              whileHover={{ y: -5, rotate: 1, scale: 1.02 }}
+              transition={{ type: "spring", stiffness: 300 }}
+              className="p-6 rounded-2xl bg-white/40 dark:bg-white/5 backdrop-blur-xl border border-white/20 dark:border-white/10 shadow-[0_8px_32px_0_rgba(31,38,135,0.07)] hover:border-blue-400/50 dark:hover:border-blue-500/50 hover:shadow-[0_0_20px_rgba(59,130,246,0.3)] transition-colors cursor-pointer"
+            >
+              <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center mb-5">
+                <feature.icon className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+              </div>
+              <h3 className="text-lg font-bold text-neutral-900 dark:text-white mb-2 tracking-tight">{feature.title}</h3>
+              <p className="text-xs text-neutral-600 dark:text-neutral-400 leading-relaxed">{feature.desc}</p>
+            </motion.div>
           ))}
         </motion.div>
       </motion.div>

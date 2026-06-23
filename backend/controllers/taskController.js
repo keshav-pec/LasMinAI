@@ -43,3 +43,27 @@ exports.getPrioritizedTasks = async (req, res) => {
     res.status(500).json({ success: false, error: error.message });
   }
 };
+
+// Update task status
+exports.updateTaskStatus = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
+
+    if (!['pending', 'completed', 'overdue'].includes(status)) {
+      return res.status(400).json({ success: false, message: 'Invalid status' });
+    }
+
+    const task = await Task.findOneAndUpdate(
+      { _id: id, userId: req.user.id },
+      { status },
+      { new: true }
+    );
+
+    if (!task) return res.status(404).json({ success: false, message: 'Task not found' });
+
+    res.status(200).json({ success: true, data: task });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+};

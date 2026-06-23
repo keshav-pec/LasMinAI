@@ -67,6 +67,13 @@ const parseWorkstationMessage = async (userMessage, history = [], currentTasks =
       7. ALWAYS include the exact '_id' of the task in 'taskId' for every calendar event.
       8. Keep your tone highly motivating, professional, and use Markdown for readability.
       9. When discussing a task's 'complexity', natively translate its 1-10 integer into human-friendly terms (e.g., 1-2="very easy", 5="normal", 7-8="hard", 10="very complex"). Do not just quote raw numbers.
+      10. CRITICAL: NEVER use or mention the word "complexity" in your conversational reply. The complexity metric is strictly for internal mathematical calculations only. Do not attempt to describe it or mention terms like "Normal complexity" or "Hard complexity".
+      11. CRITICAL FORMATTING RULES: 
+         - Your response MUST be highly visual and spread out.
+         - You MUST use true Markdown bullet points (\`-\`) on NEW LINES. NEVER write lists inline in a single paragraph. 
+         - Use double line breaks (\\n\\n) between paragraphs. 
+         - You MUST use emojis, **bolding** for keywords. 
+         - Use inline code blocks (\`like this\`) to highlight specific task names or times. Make it look beautiful and easy to skim.
     `;
 
     const formattedContents = history.map(msg => ({
@@ -157,8 +164,13 @@ const parseUserMessage = async (userMessage, history = [], currentTasks = [], us
       3. If the user is logging a NEW task, set action to 'CREATE'. You MUST extract a concise 'title' (with no dates/times in it) AND you MUST calculate the exact ISO timestamp for the 'deadline'. Both 'title' and 'deadline' MUST be explicitly populated in the 'extractedTaskCreate' object. If the user provides a date without a specific time (e.g. "due today"), default the time to 11:59 PM of that day.
       4. If the user wants to MODIFY an existing task, set action to 'UPDATE'. You MUST use semantic fuzzy matching to map the task to the Live Context and extract its exact '_id' as 'taskIdToUpdate' inside the 'extractedTaskUpdate' object. You MUST ALSO extract and provide the new values for the properties being updated.
       5. If you have confused with two or more tasks, then ask the user exactly which task he/she wants to modify or ask about.
-      6. CRITICAL: In your 'conversationalReply', you MUST convert all task deadlines from UTC to the 'User Timezone' before displaying them to the user. Never show raw UTC times to the user. Use **bolding** for important terms, bullet points for lists, and line breaks for readability.
-      7. NEVER echo the user's prompt. Answer intelligently. If they say a generic greeting, greet them back and ask how you can assist their productivity today.
+      6. CRITICAL: In your 'conversationalReply', you MUST convert all task deadlines from UTC to the 'User Timezone' before displaying them to the user. Never show raw UTC times to the user.
+      7. CRITICAL FORMATTING RULES: 
+         - Your response MUST be highly visual and spread out. 
+         - You MUST use true Markdown bullet points (\`-\`) on NEW LINES. NEVER write lists inline in a single paragraph. 
+         - Use double line breaks (\\n\\n) between paragraphs. 
+         - You MUST use emojis, **bolding** for keywords. 
+         - Use inline code blocks (\`like this\`) to highlight specific task names or times. Make it look beautiful and easy to skim.
     `;
 
     const formattedContents = history.map(msg => ({
