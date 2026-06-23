@@ -4,6 +4,7 @@ import Navbar from './components/Navbar';
 import Home from './pages/Home';
 import Auth from './pages/Auth';
 import TaskPrompter from './pages/TaskPrompter'; // Renamed component
+import WorkStation from './pages/WorkStation';
 
 const ProtectedRoute = ({ isAuthenticated, children }) => {
   if (isAuthenticated === null) return null;
@@ -46,6 +47,14 @@ export default function App() {
             element={
               <ProtectedRoute isAuthenticated={isAuthenticated}>
                 <TaskPrompter userData={userData} />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/work-station" 
+            element={
+              <ProtectedRoute isAuthenticated={isAuthenticated}>
+                <WorkStation userData={userData} />
               </ProtectedRoute>
             } 
           />

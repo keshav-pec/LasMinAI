@@ -10,7 +10,7 @@ export default function TaskPrompter({ userData }) {
     { 
       id: 'system-init', 
       role: 'ai', 
-      content: `System initialized. Ready to sync your deadlines, ${userData?.given_name || 'Guest'}. What task are we prioritizing today?` 
+      content: `Ready to manage your tasks, ${userData?.name?.split(' ')[0] || 'Guest'}. What task are we prioritizing today?` 
     }
   ]);
   const [inputValue, setInputValue] = useState('');
@@ -92,9 +92,14 @@ export default function TaskPrompter({ userData }) {
     ]);
 
     try {
+      const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+      const localTime = new Date().toLocaleString('en-US', { timeZone: userTimezone });
+
       const response = await axios.post('http://localhost:5050/api/chat', { 
         message: userText,
-        history: historyContext
+        history: historyContext,
+        userTimezone,
+        localTime
       }, { withCredentials: true });
       
       if (response.data.success) {

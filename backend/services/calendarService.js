@@ -1,53 +1,70 @@
 const { google } = require('googleapis');
 
-const pushScheduleToCalendar = async (oauth2Client, aiScheduleEvents) => {
+const pushScheduleToCalendar = async (oauth2Client, aiScheduleEvents, userTimezone = 'Asia/Kolkata') => {
   const calendar = google.calendar({ version: 'v3', auth: oauth2Client });
   const successfullyInserted = [];
 
-  // --- NEW: THE CLEANUP PHASE ---
+  // 1. Fetch upcoming events created by LasMinAI
+  const now = new Date().toISOString();
+  let existingEventsList = [];
   try {
-    // 1. Fetch upcoming events created by LasMinAI
-    const now = new Date().toISOString();
     const existingEvents = await calendar.events.list({
       calendarId: 'primary',
-      timeMin: now, // Only clean up future events
-      q: 'LasMinAI:', // Search query to isolate our specific blocks
+      timeMin: now, 
+      q: 'LasMinAI:', 
       singleEvents: true,
+      maxResults: 2500, // Make sure we get enough events to check extendedProperties
     });
-
-    // 2. Delete the old LasMinAI blocks to prevent duplication
-    const eventsToDelete = existingEvents.data.items || [];
-    for (const event of eventsToDelete) {
-      await calendar.events.delete({
-        calendarId: 'primary',
-        eventId: event.id,
-      });
-      console.log(`🗑️ Deleted old schedule block: ${event.summary}`);
-    }
+    existingEventsList = existingEvents.data.items || [];
   } catch (error) {
-    console.error('❌ Error during calendar cleanup:', error.message);
+    console.error('❌ Error fetching calendar events:', error.message);
   }
 
-  // --- EXISTING: THE INSERTION PHASE ---
+  // 2. Process and Insert/Update events
   for (const event of aiScheduleEvents) {
     const calendarEvent = {
       summary: `LasMinAI: ${event.taskTitle}`,
       description: event.focusModeRequired 
         ? '⚠️ High-Complexity Task. LasMinAI recommends disabling notifications.' 
         : 'LasMinAI autonomous scheduling block.',
-      start: { dateTime: event.startTime, timeZone: 'Asia/Kolkata' },
-      end: { dateTime: event.endTime, timeZone: 'Asia/Kolkata' },
-      colorId: event.focusModeRequired ? '11' : '9' 
+      start: { dateTime: event.startTime.replace(/Z$/, ''), timeZone: userTimezone },
+      end: { dateTime: event.endTime.replace(/Z$/, ''), timeZone: userTimezone },
+      colorId: event.focusModeRequired ? '11' : '9',
+      extendedProperties: {
+        private: {
+          taskId: event.taskId
+        }
+      }
     };
 
     try {
-      const response = await calendar.events.insert({
-        calendarId: 'primary',
-        resource: calendarEvent,
-      });
+      // Check if an event for this taskId already exists in the future
+      const existingEvent = existingEventsList.find(e => 
+        e.extendedProperties && 
+        e.extendedProperties.private && 
+        e.extendedProperties.private.taskId === event.taskId
+      );
+
+      let response;
+      if (existingEvent) {
+        // Update existing event
+        response = await calendar.events.update({
+          calendarId: 'primary',
+          eventId: existingEvent.id,
+          resource: calendarEvent,
+        });
+        console.log(`🔄 Updated calendar block for task: ${event.taskTitle}`);
+      } else {
+        // Insert new event
+        response = await calendar.events.insert({
+          calendarId: 'primary',
+          resource: calendarEvent,
+        });
+        console.log(`✅ Inserted new calendar block for task: ${event.taskTitle}`);
+      }
       successfullyInserted.push(response.data.htmlLink);
     } catch (error) {
-      console.error(`❌ Failed to insert ${event.taskTitle}:`, error.message);
+      console.error(`❌ Failed to sync ${event.taskTitle}:`, error.message);
     }
   }
   

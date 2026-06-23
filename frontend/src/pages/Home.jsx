@@ -30,14 +30,19 @@ export default function Home({ isAuthenticated }) {
         </motion.h1>
 
         <motion.p variants={itemVariants} className="text-lg text-neutral-600 dark:text-neutral-400 mb-10 max-w-2xl mx-auto leading-relaxed">
-          Stop missing deadlines. LasMinAI calculates task complexity, estimates technical effort, and autonomously restructures your Google Calendar to ensure execution.
+          Stop missing deadlines. LasMinAI autonomously restructures your Google Calendar to ensure execution.
         </motion.p>
 
         <motion.div variants={itemVariants} className="flex flex-col sm:flex-row items-center justify-center gap-4">
           {isAuthenticated ? (
-            <Link to="/task-prompter" className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-8 py-4 rounded-full font-medium transition-all shadow-lg shadow-blue-600/20">
-              Launch Task Prompter <ArrowRight className="w-4 h-4" />
-            </Link>
+            <>
+              <Link to="/task-prompter" className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-8 py-4 rounded-full font-medium transition-all shadow-lg shadow-blue-600/20">
+                Launch Task Prompter
+              </Link>
+              <Link to="/work-station" className="flex items-center gap-2 bg-neutral-900 dark:bg-neutral-100 hover:bg-neutral-800 dark:hover:bg-white text-white dark:text-neutral-900 px-8 py-4 rounded-full font-medium transition-all shadow-lg">
+                Enter Work Station
+              </Link>
+            </>
           ) : (
             <Link to="/auth" className="flex items-center gap-2 bg-neutral-900 dark:bg-neutral-100 hover:bg-neutral-800 dark:hover:bg-white text-white dark:text-neutral-900 px-8 py-4 rounded-full font-medium transition-all">
               Initialize Connection

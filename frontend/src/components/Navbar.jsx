@@ -31,9 +31,15 @@ export default function Navbar({ userData, setUserData }) {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const handleLogout = () => {
-    // In a full production app, you'd hit a backend /logout route to destroy the session.
-    // For this prototype, we clear the local state and redirect.
+  const handleLogout = async () => {
+    try {
+      await fetch('http://localhost:5050/api/auth/logout', { 
+        method: 'POST',
+        credentials: 'include' 
+      });
+    } catch (error) {
+      console.error('Logout failed:', error);
+    }
     setUserData(null);
     setIsMenuOpen(false);
     navigate('/');
@@ -77,6 +83,9 @@ export default function Navbar({ userData, setUserData }) {
                   <div className="p-2">
                     <Link to="/task-prompter" onClick={() => setIsMenuOpen(false)} className="flex items-center gap-3 px-3 py-2 text-sm text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-lg transition-colors">
                       <TerminalIcon className="w-4 h-4" /> Task Prompter
+                    </Link>
+                    <Link to="/work-station" onClick={() => setIsMenuOpen(false)} className="flex items-center gap-3 px-3 py-2 text-sm text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-lg transition-colors">
+                      <Zap className="w-4 h-4" /> Work Station
                     </Link>
                     <button onClick={() => setIsMenuOpen(false)} className="w-full flex items-center gap-3 px-3 py-2 text-sm text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-lg transition-colors text-left">
                       <Settings className="w-4 h-4" /> Settings

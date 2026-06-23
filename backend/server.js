@@ -24,12 +24,14 @@ mongoose.connect(process.env.MONGO_URI)
 // ROUTE IMPORTS
 const aiRoutes = require('./routes/aiRoutes');
 const taskRoutes = require('./routes/taskRoutes');
+const workstationRoutes = require('./routes/workstationRoutes');
 
 // ROUTE MIDDLEWARE
 app.use('/api/ai', aiRoutes);
 app.use('/api/tasks', taskRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/chat', chatRoutes);
+app.use('/api/workstation', workstationRoutes);
 
 // Basic Health Check Route
 app.get('/api/health', (req, res) => {

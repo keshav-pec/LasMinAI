@@ -16,6 +16,7 @@ const getSortedPendingTasks = async (userId) => {
       deadline: task.deadline,
       complexity: task.complexity,
       technicalEffort: task.technicalEffort,
+      status: task.status,
       priorityScore: calculatePriorityScore(task.deadline, task.complexity, task.technicalEffort)
     };
   });

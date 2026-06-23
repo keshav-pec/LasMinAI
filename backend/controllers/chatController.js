@@ -4,7 +4,7 @@ const { calculatePriorityScore } = require('../utils/priorityCalculator');
 
 exports.handleChatMessage = async (req, res) => {
   try {
-    const { message, history } = req.body;
+    const { message, history, userTimezone, localTime } = req.body;
 
     if (!message) {
       return res.status(400).json({ success: false, error: "Message is required." });
@@ -26,14 +26,14 @@ exports.handleChatMessage = async (req, res) => {
                                 .select('_id title deadline complexity technicalEffort status');
 
     // 3. Pass everything to the AI Brain
-    const aiAnalysis = await parseUserMessage(message, history || [], liveTasks);
+    const aiAnalysis = await parseUserMessage(message, history || [], liveTasks, userTimezone, localTime);
 
     // ==========================================
     // ACTION ROUTING
     // ==========================================
-    if (aiAnalysis.action === 'CREATE' && aiAnalysis.extractedTask) {
-      const { title, complexity, technicalEffort } = aiAnalysis.extractedTask;
-      let { deadline } = aiAnalysis.extractedTask;
+    if (aiAnalysis.action === 'CREATE' && aiAnalysis.extractedTaskCreate) {
+      const { title, complexity, technicalEffort } = aiAnalysis.extractedTaskCreate;
+      let { deadline } = aiAnalysis.extractedTaskCreate;
 
       // Fallback: If Gemini hallucinates or fails to extract the deadline, default to 24 hours from now
       if (!deadline) {
@@ -56,20 +56,20 @@ exports.handleChatMessage = async (req, res) => {
       }
     } 
     
-    else if (aiAnalysis.action === 'UPDATE' && aiAnalysis.extractedTask && aiAnalysis.extractedTask.taskIdToUpdate) {
+    else if (aiAnalysis.action === 'UPDATE' && aiAnalysis.extractedTaskUpdate && aiAnalysis.extractedTaskUpdate.taskIdToUpdate) {
       
       // Find the exact task using the MongoDB _id
-      const taskToUpdate = await Task.findById(aiAnalysis.extractedTask.taskIdToUpdate);
+      const taskToUpdate = await Task.findById(aiAnalysis.extractedTaskUpdate.taskIdToUpdate);
 
       if (taskToUpdate) {
         // Apply the extracted updates dynamically
-        if (aiAnalysis.extractedTask.complexity) taskToUpdate.complexity = aiAnalysis.extractedTask.complexity;
-        if (aiAnalysis.extractedTask.technicalEffort) taskToUpdate.technicalEffort = aiAnalysis.extractedTask.technicalEffort;
-        if (aiAnalysis.extractedTask.deadline) taskToUpdate.deadline = aiAnalysis.extractedTask.deadline;
+        if (aiAnalysis.extractedTaskUpdate.complexity) taskToUpdate.complexity = aiAnalysis.extractedTaskUpdate.complexity;
+        if (aiAnalysis.extractedTaskUpdate.technicalEffort) taskToUpdate.technicalEffort = aiAnalysis.extractedTaskUpdate.technicalEffort;
+        if (aiAnalysis.extractedTaskUpdate.deadline) taskToUpdate.deadline = aiAnalysis.extractedTaskUpdate.deadline;
         
         // NEW: Apply status updates (e.g., marking as completed)
-        if (aiAnalysis.extractedTask.status) {
-            taskToUpdate.status = aiAnalysis.extractedTask.status;
+        if (aiAnalysis.extractedTaskUpdate.status) {
+            taskToUpdate.status = aiAnalysis.extractedTaskUpdate.status;
         }
         
         // Recalculate priority if it's not completed
@@ -82,7 +82,7 @@ exports.handleChatMessage = async (req, res) => {
         await taskToUpdate.save();
         console.log(`✅ Autonomous Log: Task [${taskToUpdate.title}] updated successfully.`);
       } else {
-        console.log(`⚠️ Update Failed: Task ID ${aiAnalysis.extractedTask.taskIdToUpdate} not found.`);
+        console.log(`⚠️ Update Failed: Task ID ${aiAnalysis.extractedTaskUpdate.taskIdToUpdate} not found.`);
       }
     }
 
