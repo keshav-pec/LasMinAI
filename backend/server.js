@@ -2,14 +2,19 @@ require('dotenv').config();
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
+const cookieParser = require('cookie-parser');
 const { router: authRoutes } = require('./routes/authRoutes');
 const chatRoutes = require('./routes/chatRoutes');
 
 const app = express();
 
 // Middleware
-app.use(cors());
+app.use(cors({
+  origin: 'http://localhost:5174', // Frontend URL
+  credentials: true
+}));
 app.use(express.json()); // Parses incoming JSON requests
+app.use(cookieParser());
 
 // MongoDB Connection
 mongoose.connect(process.env.MONGO_URI)

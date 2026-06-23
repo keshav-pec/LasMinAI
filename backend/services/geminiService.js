@@ -94,13 +94,12 @@ const intentSchema = {
       type: Type.OBJECT,
       description: "Populate for CREATE or UPDATE actions.",
       properties: {
-        title: { type: Type.STRING, description: "A concise title for the task." },
-        deadline: { type: Type.STRING, description: "ISO 8601 date string representing the exact deadline." },
+        title: { type: Type.STRING, description: "A concise title for the task. Do NOT include dates here." },
+        deadline: { type: Type.STRING, description: "ISO 8601 date string representing the exact deadline. MUST be provided for CREATE." },
         complexity: { type: Type.NUMBER, description: "Scale of 1-10. Default to 5 if not specified." },
         technicalEffort: { type: Type.NUMBER, description: "Estimated hours to complete. Default to 2 if not specified." },
         status: { type: Type.STRING, enum: ["pending", "completed", "overdue"] },
-        taskIdToUpdate: { type: Type.STRING, description: "If updating, the exact _id of the task from the Live Database Context." 
-}
+        taskIdToUpdate: { type: Type.STRING, description: "If updating, the exact _id of the task from the Live Database Context." }
       }
     }
   },
@@ -125,11 +124,12 @@ const parseUserMessage = async (userMessage, history = [], currentTasks = []) =>
       Instructions:
       1. Analyze the user's latest message alongside the conversation history and Live Database Context.
       2. If the user asks what tasks they have, set action to 'READ' and list the tasks from the Live Context in your conversationalReply.
-      3. If the user is logging a NEW task, set action to 'CREATE' and extract all available parameters. Convert relative times (like "tomorrow") to ISO timestamps.
+      3. If the user is logging a NEW task, set action to 'CREATE' and extract all available parameters. Convert relative times (like "tomorrow") to ISO timestamps and put it EXPLICITLY in the 'deadline' field. Never put the date inside the 'title'.
       4. If the user wants to MODIFY an existing task, set action to 'UPDATE'. You MUST use semantic fuzzy matching to map the user's shorthand, acronyms, or partial names (e.g., "DBMS" for "Database Management Systems") to the correct task in the Live Context. Extract its exact '_id' as 'taskIdToUpdate'.
       5. If you have confused with two or more tasks, then ask the user exactly which task he/she wants to modify or ask about.
       6. CRITICAL: In your 'conversationalReply', you should use Markdown oftenly. Use **bolding** for important terms (task names, deadlines), use bullet points for lists, and use line breaks to make your response highly readable.
       7. NEVER echo the user's prompt. Answer intelligently. If they say a generic greeting, greet them back and ask how you can assist their productivity today.
+      8. CRITICAL RULE: If you set action to 'CREATE', you MUST provide the 'title' and 'deadline' inside 'extractedTask'.
     `;
 
     const formattedContents = history.map(msg => ({

@@ -10,7 +10,7 @@ export default function TaskPrompter({ userData }) {
     { 
       id: 'system-init', 
       role: 'ai', 
-      content: `System initialized. Ready to sync your deadlines, ${userData?.given_name || 'Keshav'}. What task are we prioritizing today?` 
+      content: `System initialized. Ready to sync your deadlines, ${userData?.given_name || 'Guest'}. What task are we prioritizing today?` 
     }
   ]);
   const [inputValue, setInputValue] = useState('');
@@ -95,7 +95,7 @@ export default function TaskPrompter({ userData }) {
       const response = await axios.post('http://localhost:5050/api/chat', { 
         message: userText,
         history: historyContext
-      });
+      }, { withCredentials: true });
       
       if (response.data.success) {
         setMessages((prev) => 

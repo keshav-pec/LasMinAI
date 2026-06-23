@@ -1,5 +1,6 @@
 const express = require('express');
 const { google } = require('googleapis');
+const jwt = require('jsonwebtoken');
 require('dotenv').config();
 
 const router = express.Router();
@@ -10,11 +11,19 @@ const oauth2Client = new google.auth.OAuth2(
   process.env.GOOGLE_REDIRECT_URI
 );
 
+// Store user tokens in memory for the hackathon (userId -> tokens)
+const userSessions = new Map();
+
+// Helper to get tokens for calendar service
+const getUserTokens = (userId) => {
+  return userSessions.get(userId);
+};
+
 // 1. Redirect to Google Consent
 router.get('/google', (req, res) => {
   const scopes = [
     'https://www.googleapis.com/auth/calendar.events',
-    'https://www.googleapis.com/auth/userinfo.profile', // NEW: Fetch Avatar/Name
+    'https://www.googleapis.com/auth/userinfo.profile',
     'https://www.googleapis.com/auth/userinfo.email'
   ];
   const url = oauth2Client.generateAuthUrl({
@@ -30,14 +39,30 @@ router.get('/google/callback', async (req, res) => {
   try {
     const { tokens } = await oauth2Client.getToken(code);
     oauth2Client.setCredentials(tokens);
-    global.googleTokens = tokens; 
 
     // Fetch the user's Google Profile
     const oauth2 = google.oauth2({ auth: oauth2Client, version: 'v2' });
     const userInfo = await oauth2.userinfo.get();
     
-    // Store user data in memory for the hackathon
-    global.user = userInfo.data; 
+    const user = userInfo.data;
+
+    // Save tokens in memory mapping
+    userSessions.set(user.id, tokens);
+
+    // Generate JWT
+    const token = jwt.sign(
+      { id: user.id, email: user.email, name: user.name, picture: user.picture },
+      process.env.JWT_SECRET || 'fallback_secret_for_hackathon',
+      { expiresIn: '7d' }
+    );
+
+    // Set cookie
+    res.cookie('auth_token', token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+    });
 
     // Redirect back to your Vite frontend terminal
     res.redirect('http://localhost:5174/');
@@ -47,13 +72,16 @@ router.get('/google/callback', async (req, res) => {
   }
 });
 
-// 3. NEW: Endpoint for React to verify who is logged in
-router.get('/me', (req, res) => {
-  if (global.googleTokens && global.user) {
-    res.status(200).json({ authenticated: true, user: global.user });
-  } else {
-    res.status(200).json({ authenticated: false, user: null });
-  }
+// 3. Endpoint for React to verify who is logged in
+const { requireAuth } = require('../utils/authMiddleware');
+router.get('/me', requireAuth, (req, res) => {
+  res.status(200).json({ authenticated: true, user: req.user });
 });
 
-module.exports = { router, oauth2Client };
+// 4. Logout route
+router.post('/logout', (req, res) => {
+  res.clearCookie('auth_token');
+  res.status(200).json({ success: true });
+});
+
+module.exports = { router, oauth2Client, getUserTokens };

@@ -18,7 +18,7 @@ export default function App() {
   useEffect(() => {
     const fetchSession = async () => {
       try {
-        const response = await fetch('http://localhost:5050/api/auth/me');
+        const response = await fetch('http://localhost:5050/api/auth/me', { credentials: 'include' });
         const data = await response.json();
         if (data.authenticated) setUserData(data.user);
       } catch (error) {

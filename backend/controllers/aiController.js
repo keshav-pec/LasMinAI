@@ -1,7 +1,7 @@
 const { generateAgenticSchedule } = require('../services/geminiService');
 const { getSortedPendingTasks } = require('../services/taskService');
 const { pushScheduleToCalendar } = require('../services/calendarService');
-const { oauth2Client } = require('../routes/authRoutes');
+const { oauth2Client, getUserTokens } = require('../routes/authRoutes');
 
 exports.getAiSchedule = async (req, res) => {
   try {
@@ -9,7 +9,7 @@ exports.getAiSchedule = async (req, res) => {
     const hours = availableHours ? parseInt(availableHours) : 8;
 
     // Fetch and dynamically score/sort tasks via the abstracted service method
-    const dynamicallySortedTasks = await getSortedPendingTasks();
+    const dynamicallySortedTasks = await getSortedPendingTasks(req.user.id);
 
     // Check if there are no pending tasks to process
     if (!dynamicallySortedTasks || dynamicallySortedTasks.length === 0) {
@@ -27,8 +27,9 @@ exports.getAiSchedule = async (req, res) => {
     let calendarStatus = "Skipped - No active Google session found. Please hit /api/auth/google first.";
 
     // Explicitly verify token state and publish to Google Calendar
-    if (global.googleTokens && Object.keys(global.googleTokens).length > 0) {
-      oauth2Client.setCredentials(global.googleTokens);
+    const userTokens = getUserTokens(req.user.id);
+    if (userTokens && Object.keys(userTokens).length > 0) {
+      oauth2Client.setCredentials(userTokens);
       calendarLinks = await pushScheduleToCalendar(oauth2Client, aiSchedule.calendarEvents);
       calendarStatus = `Successfully synced ${calendarLinks.length} events to Google Calendar.`;
     }

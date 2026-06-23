@@ -16,6 +16,7 @@ exports.createTask = async (req, res) => {
     const priorityScore = calculatePriorityScore(deadline, complexity, technicalEffort);
 
     const newTask = new Task({
+      userId: req.user.id,
       title,
       description,
       deadline,
@@ -35,7 +36,7 @@ exports.createTask = async (req, res) => {
 exports.getPrioritizedTasks = async (req, res) => {
   try {
     // ONE LINE REPLACES THE MANUAL DB MAP, SAVE, AND SORT LOOPS
-    const updatedTasks = await getSortedPendingTasks();
+    const updatedTasks = await getSortedPendingTasks(req.user.id);
 
     res.status(200).json({ success: true, data: updatedTasks });
   } catch (error) {

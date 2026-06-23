@@ -14,15 +14,15 @@ exports.handleChatMessage = async (req, res) => {
     // THE ZOMBIE SWEEPER
     // ==========================================
     const now = new Date();
-    // 1. Find tasks that are pending but their deadline is in the past
+    // 1. Find tasks that are pending but their deadline is in the past (Isolated to current user)
     await Task.updateMany(
-      { status: 'pending', deadline: { $lt: now } },
+      { userId: req.user.id, status: 'pending', deadline: { $lt: now } },
       { $set: { status: 'overdue' } }
     );
 
     // 2. Fetch the newly cleaned live context. 
     // We explicitly select _id so Gemini can use it for precise updates.
-    const liveTasks = await Task.find({ status: { $ne: 'completed' } })
+    const liveTasks = await Task.find({ userId: req.user.id, status: { $ne: 'completed' } })
                                 .select('_id title deadline complexity technicalEffort status');
 
     // 3. Pass everything to the AI Brain
@@ -32,11 +32,20 @@ exports.handleChatMessage = async (req, res) => {
     // ACTION ROUTING
     // ==========================================
     if (aiAnalysis.action === 'CREATE' && aiAnalysis.extractedTask) {
-      const { title, deadline, complexity, technicalEffort } = aiAnalysis.extractedTask;
+      const { title, complexity, technicalEffort } = aiAnalysis.extractedTask;
+      let { deadline } = aiAnalysis.extractedTask;
+
+      // Fallback: If Gemini hallucinates or fails to extract the deadline, default to 24 hours from now
+      if (!deadline) {
+        const fallbackDate = new Date();
+        fallbackDate.setHours(fallbackDate.getHours() + 24);
+        deadline = fallbackDate.toISOString();
+      }
       
-      if (title && deadline) {
+      if (title) {
         const priorityScore = calculatePriorityScore(deadline, complexity || 5, technicalEffort || 2);
         const newTask = new Task({
+          userId: req.user.id,
           title,
           deadline,
           complexity: complexity || 5,
