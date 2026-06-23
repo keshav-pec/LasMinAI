@@ -66,6 +66,7 @@ const parseWorkstationMessage = async (userMessage, history = [], currentTasks =
       6. For Pomodoro, you can schedule 25-minute blocks with 5-minute breaks.
       7. ALWAYS include the exact '_id' of the task in 'taskId' for every calendar event.
       8. Keep your tone highly motivating, professional, and use Markdown for readability.
+      9. When discussing a task's 'complexity', natively translate its 1-10 integer into human-friendly terms (e.g., 1-2="very easy", 5="normal", 7-8="hard", 10="very complex"). Do not just quote raw numbers.
     `;
 
     const formattedContents = history.map(msg => ({
@@ -113,7 +114,7 @@ const intentSchema = {
       properties: {
         title: { type: Type.STRING, description: "A concise title for the task. Do NOT include dates here." },
         deadline: { type: Type.STRING, description: "ISO 8601 exact date string. NEVER OMIT THIS FIELD. Calculate relative times (e.g. 'today' -> 11:59 PM today)." },
-        complexity: { type: Type.NUMBER, description: "Scale of 1-10. Default to 5 if not specified." },
+        complexity: { type: Type.NUMBER, description: "Scale of 1-10 based on user's feeling (1=very easy, 2=easy, 5=normal, 7-8=hard, 10=complex). You MUST intelligently extract this." },
         technicalEffort: { type: Type.NUMBER, description: "Estimated hours to complete. Default to 2 if not specified." }
       },
       required: ["title", "deadline"]
@@ -125,7 +126,7 @@ const intentSchema = {
         taskIdToUpdate: { type: Type.STRING, description: "The exact _id of the task from the Live Database Context." },
         title: { type: Type.STRING },
         deadline: { type: Type.STRING },
-        complexity: { type: Type.NUMBER },
+        complexity: { type: Type.NUMBER, description: "Scale of 1-10 based on user's feeling (1=very easy, 2=easy, 5=normal, 7-8=hard, 10=complex)." },
         technicalEffort: { type: Type.NUMBER },
         status: { type: Type.STRING, enum: ["pending", "completed", "overdue"] }
       },

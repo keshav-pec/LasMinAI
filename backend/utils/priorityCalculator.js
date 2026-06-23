@@ -24,7 +24,7 @@ const calculatePriorityScore = (deadline, complexity, technicalEffort) => {
   // Final Score
   const totalScore = urgencyFactor + complexityFactor + effortFactor;
 
-  return parseFloat(totalScore.toFixed(2));
+  return Math.round(totalScore);
 };
 
 module.exports = { calculatePriorityScore };

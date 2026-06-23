@@ -11,12 +11,12 @@ const oauth2Client = new google.auth.OAuth2(
   process.env.GOOGLE_REDIRECT_URI
 );
 
-// Store user tokens in memory for the hackathon (userId -> tokens)
-const userSessions = new Map();
+const User = require('../models/User');
 
 // Helper to get tokens for calendar service
-const getUserTokens = (userId) => {
-  return userSessions.get(userId);
+const getUserTokens = async (userId) => {
+  const user = await User.findOne({ googleId: userId });
+  return user ? user.googleTokens : null;
 };
 
 // 1. Redirect to Google Consent
@@ -46,8 +46,22 @@ router.get('/google/callback', async (req, res) => {
     
     const user = userInfo.data;
 
-    // Save tokens in memory mapping
-    userSessions.set(user.id, tokens);
+    // Save tokens in MongoDB
+    let dbUser = await User.findOne({ googleId: user.id });
+    if (dbUser) {
+      dbUser.googleTokens = tokens;
+      dbUser.name = user.name;
+      dbUser.picture = user.picture;
+      await dbUser.save();
+    } else {
+      dbUser = await User.create({
+        googleId: user.id,
+        email: user.email,
+        name: user.name,
+        picture: user.picture,
+        googleTokens: tokens
+      });
+    }
 
     // Generate JWT
     const token = jwt.sign(
