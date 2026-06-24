@@ -3,6 +3,7 @@ const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const cookieParser = require('cookie-parser');
+const rateLimit = require('express-rate-limit');
 const { router: authRoutes } = require('./routes/authRoutes');
 const chatRoutes = require('./routes/chatRoutes');
 
@@ -26,10 +27,18 @@ const taskRoutes = require('./routes/taskRoutes');
 const workstationRoutes = require('./routes/workstationRoutes');
 
 // ROUTE MIDDLEWARE
+const aiLimiter = rateLimit({
+  windowMs: 1 * 60 * 1000, // 1 minute
+  max: 20, // Limit each IP to 20 requests per windowMs
+  message: { success: false, error: 'Too many requests to the AI engine, please try again after a minute.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
 app.use('/api/tasks', taskRoutes);
 app.use('/api/auth', authRoutes);
-app.use('/api/chat', chatRoutes);
-app.use('/api/workstation', workstationRoutes);
+app.use('/api/chat', aiLimiter, chatRoutes);
+app.use('/api/workstation', aiLimiter, workstationRoutes);
 
 // Basic Health Check Route
 app.get('/api/health', (req, res) => {

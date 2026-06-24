@@ -30,7 +30,7 @@ export default function App() {
           });
         }
       } catch (error) {
-        toast.error("Could not connect to the server.");
+        toast.error("Could not connect to the server.", { id: 'server-error-toast' });
       } finally {
         setIsLoading(false);
       }

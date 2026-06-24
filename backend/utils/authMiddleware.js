@@ -8,7 +8,11 @@ const requireAuth = (req, res, next) => {
   }
 
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback_secret_for_hackathon');
+    if (!process.env.JWT_SECRET) {
+      console.error('FATAL ERROR: JWT_SECRET is not defined.');
+      process.exit(1);
+    }
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
     req.user = decoded; // Contains id, email, name, picture
     next();
   } catch (error) {

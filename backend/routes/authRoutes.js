@@ -1,6 +1,7 @@
 const express = require('express');
 const { google } = require('googleapis');
 const jwt = require('jsonwebtoken');
+const crypto = require('crypto');
 require('dotenv').config();
 
 const router = express.Router();
@@ -26,16 +27,35 @@ router.get('/google', (req, res) => {
     'https://www.googleapis.com/auth/userinfo.profile',
     'https://www.googleapis.com/auth/userinfo.email'
   ];
+  
+  const state = crypto.randomBytes(32).toString('hex');
+  res.cookie('oauth_state', state, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+    maxAge: 10 * 60 * 1000 // 10 minutes
+  });
+
   const url = oauth2Client.generateAuthUrl({
     access_type: 'offline',
     scope: scopes,
+    state: state,
   });
   res.redirect(url);
 });
 
 // 2. The Callback (Redirects back to React)
 router.get('/google/callback', async (req, res) => {
-  const { code } = req.query;
+  const { code, state } = req.query;
+  const storedState = req.cookies.oauth_state;
+
+  if (!state || state !== storedState) {
+    console.error('OAuth Error: Invalid or missing state parameter');
+    return res.redirect('http://localhost:5174/auth?error=csrf');
+  }
+  
+  res.clearCookie('oauth_state');
+
   try {
     const { tokens } = await oauth2Client.getToken(code);
     oauth2Client.setCredentials(tokens);
@@ -64,9 +84,14 @@ router.get('/google/callback', async (req, res) => {
     }
 
     // Generate JWT
+    if (!process.env.JWT_SECRET) {
+      console.error('FATAL ERROR: JWT_SECRET is not defined.');
+      process.exit(1);
+    }
+
     const token = jwt.sign(
       { id: user.id, email: user.email, name: user.name, picture: user.picture },
-      process.env.JWT_SECRET || 'fallback_secret_for_hackathon',
+      process.env.JWT_SECRET,
       { expiresIn: '7d' }
     );
 

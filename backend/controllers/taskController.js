@@ -8,8 +8,17 @@ exports.createTask = async (req, res) => {
     const { title, description, deadline, complexity, technicalEffort } = req.body;
 
     // Validate inputs
-    if (!title || !deadline) {
-      return res.status(400).json({ success: false, message: 'Title and deadline are required.' });
+    if (!title || typeof title !== 'string' || title.trim().length === 0 || title.length > 200) {
+      return res.status(400).json({ success: false, message: 'Valid title (max 200 chars) is required.' });
+    }
+    if (!deadline || isNaN(new Date(deadline).getTime())) {
+      return res.status(400).json({ success: false, message: 'Valid deadline is required.' });
+    }
+    if (complexity && (typeof complexity !== 'number' || complexity < 1 || complexity > 10)) {
+      return res.status(400).json({ success: false, message: 'Complexity must be a number between 1 and 10.' });
+    }
+    if (technicalEffort && (typeof technicalEffort !== 'number' || technicalEffort < 1 || technicalEffort > 10)) {
+      return res.status(400).json({ success: false, message: 'Technical Effort must be a number between 1 and 10.' });
     }
 
     // Calculate score
@@ -28,7 +37,8 @@ exports.createTask = async (req, res) => {
     await newTask.save();
     res.status(201).json({ success: true, data: newTask });
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    console.error('Create Task Error:', error);
+    res.status(500).json({ success: false, message: 'Internal Server Error' });
   }
 };
 
@@ -40,7 +50,8 @@ exports.getPrioritizedTasks = async (req, res) => {
 
     res.status(200).json({ success: true, data: updatedTasks });
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    console.error('Get Prioritized Tasks Error:', error);
+    res.status(500).json({ success: false, message: 'Internal Server Error' });
   }
 };
 
@@ -64,6 +75,7 @@ exports.updateTaskStatus = async (req, res) => {
 
     res.status(200).json({ success: true, data: task });
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    console.error('Update Task Status Error:', error);
+    res.status(500).json({ success: false, message: 'Internal Server Error' });
   }
 };
