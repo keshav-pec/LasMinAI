@@ -6,6 +6,9 @@ const cookieParser = require('cookie-parser');
 const rateLimit = require('express-rate-limit');
 const { router: authRoutes } = require('./routes/authRoutes');
 const chatRoutes = require('./routes/chatRoutes');
+const taskRoutes = require('./routes/taskRoutes');
+const workstationRoutes = require('./routes/workstationRoutes');
+const reminderRoutes = require('./routes/reminderRoutes');
 
 const app = express();
 
@@ -22,9 +25,7 @@ mongoose.connect(process.env.MONGO_URI)
 .then(() => console.log('✅ MongoDB Atlas connected successfully'))
 .catch((err) => console.error('❌ MongoDB connection error:', err));
 
-// ROUTE IMPORTS
-const taskRoutes = require('./routes/taskRoutes');
-const workstationRoutes = require('./routes/workstationRoutes');
+
 
 // ROUTE MIDDLEWARE
 const aiLimiter = rateLimit({
@@ -35,10 +36,20 @@ const aiLimiter = rateLimit({
   legacyHeaders: false,
 });
 
+const generalApiLimiter = rateLimit({
+  windowMs: 1 * 60 * 1000, // 1 minute
+  max: 100, // 100 requests per minute
+  message: { success: false, error: 'Too many requests, please try again later.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
 app.use('/api/tasks', taskRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/chat', aiLimiter, chatRoutes);
 app.use('/api/workstation', aiLimiter, workstationRoutes);
+app.use('/api/reminders/chat', aiLimiter); // Strict rate limit for AI
+app.use('/api/reminders', generalApiLimiter, reminderRoutes); // General limit for CRUD
 
 // Basic Health Check Route
 app.get('/api/health', (req, res) => {

@@ -197,7 +197,106 @@ const parseUserMessage = async (userMessage, history = [], currentTasks = [], us
   }
 };
 
+// ==========================================
+// 3. REMINDER ASSISTANT SCHEMAS
+// ==========================================
+const reminderIntentSchema = {
+  type: Type.OBJECT,
+  properties: {
+    conversationalReply: { 
+      type: Type.STRING, 
+      description: "A short, concise, and to-the-point response. Do NOT over-explain tasks." 
+    },
+    action: { 
+      type: Type.STRING, 
+      description: "The primary intent: 'CREATE', 'READ', 'UPDATE', 'DISMISS', or 'NONE'",
+      enum: ["CREATE", "READ", "UPDATE", "DISMISS", "NONE"]
+    },
+    extractedReminderCreate: {
+      type: Type.OBJECT,
+      description: "Populate ONLY for CREATE actions.",
+      properties: {
+        title: { type: Type.STRING, description: "Title of the reminder." },
+        remindAt: { type: Type.STRING, description: "ISO 8601 exact date string." },
+        snoozable: { type: Type.BOOLEAN, description: "Whether the reminder can be snoozed. Default to true." }
+      },
+      required: ["title", "remindAt"]
+    },
+    extractedReminderUpdate: {
+      type: Type.OBJECT,
+      description: "Populate ONLY for UPDATE actions.",
+      properties: {
+        reminderId: { type: Type.STRING, description: "The exact _id of the reminder from Live Active Reminders." },
+        title: { type: Type.STRING },
+        remindAt: { type: Type.STRING }
+      },
+      required: ["reminderId"]
+    },
+    extractedReminderDismiss: {
+      type: Type.OBJECT,
+      description: "Populate ONLY for DISMISS actions.",
+      properties: {
+        reminderId: { type: Type.STRING, description: "The exact _id of the reminder from Live Active Reminders to dismiss." }
+      },
+      required: ["reminderId"]
+    }
+  },
+  required: ["conversationalReply", "action"]
+};
+
+/**
+ * Parses the reminder message, injects live tasks and active reminders context.
+ */
+const parseReminderMessage = async (userMessage, history = [], activeTasks = [], activeReminders = [], userTimezone = 'Asia/Kolkata', localTime = '') => {
+  try {
+    const now = new Date();
+    
+    const systemPrompt = `
+      You are LasMinAI's Reminders Bot.
+      Current Local Date/Time: ${localTime || now.toLocaleString()}
+      User Timezone: ${userTimezone}
+
+      LIVE DATABASE CONTEXT:
+      Active Reminders: ${JSON.stringify(activeReminders, null, 2)}
+      Live Tasks (For context only, do NOT manage tasks here): ${JSON.stringify(activeTasks, null, 2)}
+
+      Instructions:
+      1. You manage CUSTOM REMINDERS, not core tasks.
+      2. If the user asks for reminders, set action to 'READ' and list them.
+      3. If the user wants to create a reminder, set action to 'CREATE' and extract 'title' and 'remindAt' (ISO 8601).
+         CRITICAL: The 'remindAt' ISO string MUST include the correct timezone offset for ${userTimezone} (e.g., +05:30 for India) or be converted perfectly to UTC 'Z'. Do NOT just append 'Z' to the local time, which causes an offset error!
+      4. If modifying, set action to 'UPDATE' and provide 'reminderId'.
+      5. If they want to dismiss/delete a reminder, set action to 'DISMISS' and provide 'reminderId'.
+      6. CRITICAL TONE RULE: Your conversationalReply should be short and to the point. Do not over-explain. Do not mention the user's task load unless they specifically ask or it directly conflicts with their reminder request.
+      7. CRITICAL TIME FORMATTING: NEVER use "UTC" in your conversationalReply. Always convert the time to a natural, human-readable format based on the User Timezone provided above (e.g., "1:00 AM", "Tomorrow at 5:30 PM").
+    `;
+
+    const formattedContents = history.map(msg => ({
+      role: msg.role === 'ai' ? 'model' : 'user',
+      parts: [{ text: msg.content }]
+    }));
+    formattedContents.push({ role: 'user', parts: [{ text: userMessage }] });
+
+    const response = await ai.models.generateContent({
+      model: 'gemini-3.1-flash-lite',
+      contents: formattedContents,
+      config: {
+        systemInstruction: systemPrompt,
+        responseMimeType: 'application/json',
+        responseSchema: reminderIntentSchema,
+        temperature: 0.1, 
+      }
+    });
+
+    return JSON.parse(response.text);
+  } catch (error) {
+    console.error(`❌ Reminder Parsing Error: ${error.message || error}`);
+    throw error;
+  }
+};
+
 module.exports = { 
   parseWorkstationMessage, 
-  parseUserMessage 
+  parseUserMessage,
+  parseReminderMessage
 };

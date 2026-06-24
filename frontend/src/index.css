@@ -6,6 +6,16 @@
   body {
     @apply transition-colors duration-50 ease-in-out antialiased;
   }
+  
+  /* Force cursor-pointer on all interactive elements project-wide */
+  button, 
+  [role="button"],
+  [type="button"],
+  [type="submit"],
+  [type="reset"],
+  summary {
+    cursor: pointer;
+  }
 }
 
 /* Gemini-style minimalist scrollbar for main chat */
