@@ -9,6 +9,9 @@ export default function Navbar({ userData, setUserData }) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [deferredPrompt, setDeferredPrompt] = useState(null);
   const [isInstalled, setIsInstalled] = useState(() => localStorage.getItem('pwaInstalled') === '1');
+  const [isStandalone, setIsStandalone] = useState(
+    window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone || document.referrer.includes('android-app://')
+  );
   const menuRef = useRef(null);
   const navigate = useNavigate();
   const location = useLocation();
@@ -50,6 +53,13 @@ export default function Navbar({ userData, setUserData }) {
       window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
       window.removeEventListener('appinstalled', handleAppInstalled);
     };
+  }, []);
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia('(display-mode: standalone)');
+    const handleChange = (e) => setIsStandalone(e.matches);
+    mediaQuery.addEventListener('change', handleChange);
+    return () => mediaQuery.removeEventListener('change', handleChange);
   }, []);
 
   const handleInstallClick = async () => {
@@ -109,7 +119,7 @@ export default function Navbar({ userData, setUserData }) {
       )}
 
       <div className="flex items-center gap-4">
-        {isHomeOrAuth && isInstalled && (
+        {isHomeOrAuth && isInstalled && !isStandalone && (
           <button 
             onClick={() => toast.success("LasMinAI is installed! Launch it from your home screen.", { icon: '🚀' })} 
             className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-blue-600 bg-blue-50 dark:bg-blue-500/10 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-500/20 rounded-full transition-colors cursor-pointer"
@@ -118,7 +128,7 @@ export default function Navbar({ userData, setUserData }) {
             <span className="hidden sm:inline">Open in App</span>
           </button>
         )}
-        {isHomeOrAuth && !isInstalled && deferredPrompt && (
+        {isHomeOrAuth && !isInstalled && !isStandalone && deferredPrompt && (
           <button 
             onClick={handleInstallClick} 
             className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-blue-600 bg-blue-50 dark:bg-blue-500/10 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-500/20 rounded-full transition-colors cursor-pointer"
