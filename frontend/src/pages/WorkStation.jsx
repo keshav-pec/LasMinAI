@@ -4,6 +4,7 @@ import { Send, Mic, Zap, ChevronLeft, ChevronRight, CheckCircle2, Clock, BrainCi
 import axios from 'axios';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import toast from 'react-hot-toast';
 
 export default function WorkStation({ userData }) {
   const [messages, setMessages] = useState([
@@ -43,9 +44,15 @@ export default function WorkStation({ userData }) {
         status: newStatus
       }, { withCredentials: true });
 
-      if (!response.data.success) fetchTasks();
+      if (response.data.success) {
+        if (newStatus === 'completed') toast.success("Task completed! Great job.");
+        else toast.success("Task restored.");
+      } else {
+        toast.error("Failed to update task status");
+        fetchTasks();
+      }
     } catch (error) {
-      console.error("Failed to update task status", error);
+      toast.error("Failed to update task status");
       fetchTasks();
     }
   };
@@ -76,7 +83,7 @@ export default function WorkStation({ userData }) {
   const toggleListening = () => {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SpeechRecognition) {
-      alert("Voice input is not supported in this browser.");
+      toast.error("Voice input is not supported in this browser.");
       return;
     }
     const recognition = new SpeechRecognition();
@@ -151,6 +158,7 @@ export default function WorkStation({ userData }) {
       }
     } catch (error) {
       setIsTyping(false);
+      toast.error("Failed to process your request. Please try again.");
       setMessages((prev) => [
         ...prev,
         { id: `ai-${Date.now()}-${Math.random()}`, role: 'ai', content: "**Error connecting to Execution Manager.**" }

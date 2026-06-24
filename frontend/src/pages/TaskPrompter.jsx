@@ -4,6 +4,7 @@ import { Send, Mic, Zap } from 'lucide-react';
 import axios from 'axios';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import toast from 'react-hot-toast';
 
 export default function TaskPrompter({ userData }) {
   const [messages, setMessages] = useState([
@@ -38,7 +39,7 @@ export default function TaskPrompter({ userData }) {
   const toggleListening = () => {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SpeechRecognition) {
-      alert("Voice input is not supported in this browser.");
+      toast.error("Voice input is not supported in this browser.");
       return;
     }
     const recognition = new SpeechRecognition();
@@ -108,6 +109,7 @@ export default function TaskPrompter({ userData }) {
         );
       }
     } catch (error) {
+      toast.error("Failed to process your request. Please try again.");
       setMessages((prev) => 
         prev.map(msg => msg.id === uniqueLoadingId ? { ...msg, content: "**Error connecting to LasMinAI core.**" } : msg)
       );

@@ -20,7 +20,7 @@ export default function Home({ isAuthenticated }) {
       <motion.div 
         animate={{ scale: [1, 1.2, 1], rotate: [0, 90, 0] }} 
         transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
-        className="absolute top-1/4 left-1/4 w-[500px] h-[500px] bg-blue-200/20 dark:bg-blue-500/10 rounded-full blur-[120px] pointer-events-none" 
+        className="absolute top-1/4 left-1/4 w-[500px] h-[500px] dark:bg-blue-500/10 rounded-full blur-[120px] pointer-events-none" 
       />
       <motion.div 
         animate={{ scale: [1, 1.5, 1], rotate: [0, -90, 0] }} 

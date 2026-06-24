@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { Toaster, toast } from 'react-hot-toast';
 import Navbar from './components/Navbar';
 import Home from './pages/Home';
 import Auth from './pages/Auth';
@@ -21,9 +22,15 @@ export default function App() {
       try {
         const response = await fetch('http://localhost:5050/api/auth/me', { credentials: 'include' });
         const data = await response.json();
-        if (data.authenticated) setUserData(data.user);
+        if (data.authenticated) {
+          setUserData(data.user);
+          toast.success(`Welcome back, ${data.user.name.split(' ')[0]}!`, { 
+            icon: '👋',
+            id: 'welcome-toast' // Prevents duplicate toasts in React StrictMode
+          });
+        }
       } catch (error) {
-        console.error("Session fetch failed.");
+        toast.error("Could not connect to the server.");
       } finally {
         setIsLoading(false);
       }
@@ -37,6 +44,16 @@ export default function App() {
 
   return (
     <Router>
+      <Toaster 
+        position="bottom-right" 
+        toastOptions={{
+          className: 'bg-white/80 dark:bg-neutral-800/80 backdrop-blur-md text-neutral-900 dark:text-neutral-100 border border-neutral-200 dark:border-neutral-700 shadow-xl',
+          style: {
+            borderRadius: '16px',
+            padding: '12px 16px',
+          },
+        }} 
+      />
       <div className="min-h-screen bg-neutral-50 dark:bg-[#131314] text-neutral-900 dark:text-neutral-200 font-sans transition-colors duration-500">
         <Navbar userData={userData} setUserData={setUserData} />
         <Routes>
