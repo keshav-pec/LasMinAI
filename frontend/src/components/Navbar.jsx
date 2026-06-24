@@ -66,7 +66,7 @@ export default function Navbar({ userData, setUserData }) {
 
   const handleLogout = async () => {
     try {
-      await fetch('http://localhost:5050/api/auth/logout', { 
+      await fetch(`${import.meta.env.VITE_API_URL}/api/auth/logout`, { 
         method: 'POST',
         credentials: 'include' 
       });

@@ -14,7 +14,7 @@ export default function Home({ isAuthenticated }) {
   const fetchTasks = async () => {
     if (!isAuthenticated) return;
     try {
-      const response = await axios.get('http://localhost:5050/api/tasks/prioritized', { withCredentials: true });
+      const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/tasks/prioritized`, { withCredentials: true });
       if (response.data.success) {
         setTasks(response.data.data);
       }
@@ -36,7 +36,7 @@ export default function Home({ isAuthenticated }) {
       const newStatus = currentStatus === 'completed' ? 'pending' : 'completed';
       setTasks(prev => prev.map(t => t._id === taskId ? { ...t, status: newStatus } : t));
       
-      const response = await axios.put(`http://localhost:5050/api/tasks/${taskId}/status`, {
+      const response = await axios.put(`${import.meta.env.VITE_API_URL}/api/tasks/${taskId}/status`, {
         status: newStatus
       }, { withCredentials: true });
 
@@ -81,9 +81,9 @@ export default function Home({ isAuthenticated }) {
       <motion.div variants={containerVariants} initial="hidden" animate="visible" className="max-w-7xl text-center z-10 w-full">
         
         <motion.h1 variants={itemVariants} className="text-5xl md:text-7xl font-extrabold tracking-tight mb-6 text-neutral-900 dark:text-white mt-8">
-          The Last-Minute <br />
+          LasMin
           <span className="text-blue-600 dark:text-blue-500">
-            Life Saver.
+            AI
           </span>
         </motion.h1>
 

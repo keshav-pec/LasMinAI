@@ -44,7 +44,7 @@ export default function AssistantWidget({ user }) {
   // Fetch Reminders
   const fetchReminders = async () => {
     try {
-      const res = await axios.get('http://localhost:5050/api/reminders', { withCredentials: true });
+      const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/reminders`, { withCredentials: true });
       if (res.data.success) {
         setReminders(res.data.data);
         broadcastReminderAction('DATA', res.data.data);
@@ -168,7 +168,7 @@ export default function AssistantWidget({ user }) {
     try {
       setTriggeredReminder((prev) => (prev && prev._id === id ? null : prev));
       if (!isBroadcast) {
-        await axios.put(`http://localhost:5050/api/reminders/${id}/dismiss`, {}, { withCredentials: true });
+        await axios.put(`${import.meta.env.VITE_API_URL}/api/reminders/${id}/dismiss`, {}, { withCredentials: true });
         broadcastReminderAction('DISMISSED', { id });
         fetchReminders();
       } else {
@@ -183,7 +183,7 @@ export default function AssistantWidget({ user }) {
     try {
       setTriggeredReminder((prev) => (prev && prev._id === id ? null : prev));
       if (!isBroadcast) {
-        await axios.put(`http://localhost:5050/api/reminders/${id}/snooze`, {}, { withCredentials: true });
+        await axios.put(`${import.meta.env.VITE_API_URL}/api/reminders/${id}/snooze`, {}, { withCredentials: true });
         toast.success("Snoozed for 10 minutes");
         broadcastReminderAction('SNOOZED', { id });
         fetchReminders();
@@ -244,7 +244,7 @@ export default function AssistantWidget({ user }) {
         timeZoneName: 'long' 
       });
 
-      const res = await axios.post('http://localhost:5050/api/reminders/chat', {
+      const res = await axios.post(`${import.meta.env.VITE_API_URL}/api/reminders/chat`, {
         message: textToSubmit,
         history,
         localTime: explicitTime,

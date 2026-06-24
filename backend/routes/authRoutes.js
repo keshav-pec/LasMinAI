@@ -6,10 +6,14 @@ require('dotenv').config();
 
 const router = express.Router();
 
+const isProduction = process.env.NODE_ENV === 'production';
+const FRONTEND_URL = isProduction ? process.env.FRONTEND_URL : 'http://localhost:5174';
+const REDIRECT_URI = isProduction ? process.env.GOOGLE_REDIRECT_URI : 'http://localhost:5050/api/auth/google/callback';
+
 const oauth2Client = new google.auth.OAuth2(
   process.env.GOOGLE_CLIENT_ID,
   process.env.GOOGLE_CLIENT_SECRET,
-  process.env.GOOGLE_REDIRECT_URI
+  REDIRECT_URI
 );
 
 const User = require('../models/User');
@@ -51,7 +55,7 @@ router.get('/google/callback', async (req, res) => {
 
   if (!state || state !== storedState) {
     console.error('OAuth Error: Invalid or missing state parameter');
-    return res.redirect('http://localhost:5174/auth?error=csrf');
+    return res.redirect(`${FRONTEND_URL}/auth?error=csrf`);
   }
   
   res.clearCookie('oauth_state');
@@ -104,10 +108,10 @@ router.get('/google/callback', async (req, res) => {
     });
 
     // Redirect back to your Vite frontend terminal
-    res.redirect('http://localhost:5174/');
+    res.redirect(`${FRONTEND_URL}/`);
   } catch (error) {
     console.error('OAuth Error:', error);
-    res.redirect('http://localhost:5174/auth?error=failed');
+    res.redirect(`${FRONTEND_URL}/auth?error=failed`);
   }
 });
 

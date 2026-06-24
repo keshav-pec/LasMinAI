@@ -26,7 +26,7 @@ export default function WorkStation({ userData }) {
   // Fetch tasks
   const fetchTasks = async () => {
     try {
-      const response = await axios.get('http://localhost:5050/api/tasks/prioritized', { withCredentials: true });
+      const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/tasks/prioritized`, { withCredentials: true });
       if (response.data.success) {
         setTasks(response.data.data);
       }
@@ -40,7 +40,7 @@ export default function WorkStation({ userData }) {
       const newStatus = currentStatus === 'completed' ? 'pending' : 'completed';
       setTasks(prev => prev.map(t => t._id === taskId ? { ...t, status: newStatus } : t));
       
-      const response = await axios.put(`http://localhost:5050/api/tasks/${taskId}/status`, {
+      const response = await axios.put(`${import.meta.env.VITE_API_URL}/api/tasks/${taskId}/status`, {
         status: newStatus
       }, { withCredentials: true });
 
@@ -135,7 +135,7 @@ export default function WorkStation({ userData }) {
 
       setIsTyping(true);
 
-      const response = await axios.post('http://localhost:5050/api/workstation/chat', { 
+      const response = await axios.post(`${import.meta.env.VITE_API_URL}/api/workstation/chat`, { 
         message: userText,
         history: historyContext,
         userTimezone,

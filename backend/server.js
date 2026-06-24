@@ -12,9 +12,12 @@ const reminderRoutes = require('./routes/reminderRoutes');
 
 const app = express();
 
+const isProduction = process.env.NODE_ENV === 'production';
+const FRONTEND_URL = isProduction ? process.env.FRONTEND_URL : 'http://localhost:5174';
+
 // Middleware
 app.use(cors({
-  origin: 'http://localhost:5174', // Frontend URL
+  origin: FRONTEND_URL, // Frontend URL
   credentials: true
 }));
 app.use(express.json()); // Parses incoming JSON requests

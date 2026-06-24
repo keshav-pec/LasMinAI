@@ -96,7 +96,7 @@ export default function TaskPrompter({ userData }) {
       const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
       const localTime = new Date().toLocaleString('en-US', { timeZone: userTimezone });
 
-      const response = await axios.post('http://localhost:5050/api/chat', { 
+      const response = await axios.post(`${import.meta.env.VITE_API_URL}/api/chat`, { 
         message: userText,
         history: historyContext,
         userTimezone,

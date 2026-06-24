@@ -10,7 +10,7 @@ export default function RemindersDashboard() {
 
   const fetchReminders = async () => {
     try {
-      const response = await axios.get('http://localhost:5050/api/reminders', { withCredentials: true });
+      const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/reminders`, { withCredentials: true });
       if (response.data.success) {
         setReminders(response.data.data);
       }
@@ -37,7 +37,7 @@ export default function RemindersDashboard() {
 
   const handleDismissReminder = async (id) => {
     try {
-      await axios.put(`http://localhost:5050/api/reminders/${id}/dismiss`, {}, { withCredentials: true });
+      await axios.put(`${import.meta.env.VITE_API_URL}/api/reminders/${id}/dismiss`, {}, { withCredentials: true });
       toast.success("Reminder dismissed");
       broadcastReminderAction('DISMISSED', { id });
       fetchReminders();
@@ -49,7 +49,7 @@ export default function RemindersDashboard() {
 
   const handleSnoozeReminder = async (id) => {
     try {
-      await axios.put(`http://localhost:5050/api/reminders/${id}/snooze`, {}, { withCredentials: true });
+      await axios.put(`${import.meta.env.VITE_API_URL}/api/reminders/${id}/snooze`, {}, { withCredentials: true });
       toast.success("Snoozed for 10 minutes");
       broadcastReminderAction('SNOOZED', { id });
       fetchReminders();

@@ -21,7 +21,7 @@ export default function App() {
   useEffect(() => {
     const fetchSession = async () => {
       try {
-        const response = await fetch('http://localhost:5050/api/auth/me', { credentials: 'include' });
+        const response = await fetch(`${import.meta.env.VITE_API_URL}/api/auth/me`, { credentials: 'include' });
         const data = await response.json();
         if (data.authenticated) {
           setUserData(data.user);
@@ -46,7 +46,7 @@ export default function App() {
   return (
     <Router>
       <Toaster 
-        position="bottom-right" 
+        position="bottom-left" 
         toastOptions={{
           className: 'bg-white/80 dark:bg-neutral-800/80 backdrop-blur-md text-neutral-900 dark:text-neutral-100 border border-neutral-200 dark:border-neutral-700 shadow-xl',
           style: {
