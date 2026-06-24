@@ -4,6 +4,7 @@ import { Bell, X, Send, Mic, MicOff, ChevronDown, ChevronUp, Clock, Check } from
 import { useLocation } from 'react-router-dom';
 import axios from 'axios';
 import toast from 'react-hot-toast';
+import { subscribeToReminderActions, broadcastReminderAction } from '../utils/reminderSync';
 
 export default function AssistantWidget({ user }) {
   const [isOpen, setIsOpen] = useState(false);
@@ -20,12 +21,25 @@ export default function AssistantWidget({ user }) {
 
   const messagesEndRef = useRef(null);
   const audioCtxRef = useRef(null);
+  const notifiedIdsRef = useRef(new Set());
   const location = useLocation();
 
-  // Hide if on auth page or user is not logged in
-  if (!user || location.pathname === '/auth') {
-    return null;
-  }
+  // Init audio context on first user interaction to bypass autoplay policy
+  useEffect(() => {
+    const initAudio = () => {
+      if (!audioCtxRef.current) {
+        audioCtxRef.current = new (window.AudioContext || window.webkitAudioContext)();
+      }
+      if (audioCtxRef.current.state === 'suspended') {
+        audioCtxRef.current.resume();
+      }
+      document.removeEventListener('click', initAudio);
+    };
+    document.addEventListener('click', initAudio);
+    return () => document.removeEventListener('click', initAudio);
+  }, []);
+
+
 
   // Fetch Reminders
   const fetchReminders = async () => {
@@ -33,6 +47,7 @@ export default function AssistantWidget({ user }) {
       const res = await axios.get('http://localhost:5050/api/reminders', { withCredentials: true });
       if (res.data.success) {
         setReminders(res.data.data);
+        broadcastReminderAction('DATA', res.data.data);
       }
     } catch (err) {
       console.error('Failed to fetch reminders:', err);
@@ -46,7 +61,23 @@ export default function AssistantWidget({ user }) {
       const syncInterval = setInterval(() => {
         fetchReminders();
       }, 60000);
-      return () => clearInterval(syncInterval);
+      
+      const unsubscribe = subscribeToReminderActions((action, payload) => {
+        if (action === 'FETCH') {
+          fetchReminders();
+        } else if (action === 'DATA') {
+          setReminders(payload);
+        } else if (action === 'DISMISSED') {
+          handleDismissReminder(payload.id, true);
+        } else if (action === 'SNOOZED') {
+          handleSnoozeReminder(payload.id, true);
+        }
+      });
+
+      return () => {
+        clearInterval(syncInterval);
+        unsubscribe();
+      };
     }
   }, [user]);
 
@@ -64,8 +95,9 @@ export default function AssistantWidget({ user }) {
       const now = new Date();
       reminders.forEach(reminder => {
         const remindTime = new Date(reminder.remindAt);
-        // If it's time (within the last 10 seconds to avoid spam)
-        if (now >= remindTime && now.getTime() - remindTime.getTime() < 10000) {
+        // If it's time and we haven't notified yet
+        if (now >= remindTime && !notifiedIdsRef.current.has(reminder._id)) {
+          notifiedIdsRef.current.add(reminder._id);
           triggerNotification(reminder);
         }
       });
@@ -132,22 +164,32 @@ export default function AssistantWidget({ user }) {
     }
   };
 
-  const handleDismissReminder = async (id) => {
+  const handleDismissReminder = async (id, isBroadcast = false) => {
     try {
-      setTriggeredReminder(null);
-      await axios.put(`http://localhost:5050/api/reminders/${id}/dismiss`, {}, { withCredentials: true });
-      fetchReminders();
+      setTriggeredReminder((prev) => (prev && prev._id === id ? null : prev));
+      if (!isBroadcast) {
+        await axios.put(`http://localhost:5050/api/reminders/${id}/dismiss`, {}, { withCredentials: true });
+        broadcastReminderAction('DISMISSED', { id });
+        fetchReminders();
+      } else {
+        fetchReminders();
+      }
     } catch (err) {
       console.error(err);
     }
   };
 
-  const handleSnoozeReminder = async (id) => {
+  const handleSnoozeReminder = async (id, isBroadcast = false) => {
     try {
-      setTriggeredReminder(null);
-      await axios.put(`http://localhost:5050/api/reminders/${id}/snooze`, {}, { withCredentials: true });
-      toast.success("Snoozed for 10 minutes");
-      fetchReminders();
+      setTriggeredReminder((prev) => (prev && prev._id === id ? null : prev));
+      if (!isBroadcast) {
+        await axios.put(`http://localhost:5050/api/reminders/${id}/snooze`, {}, { withCredentials: true });
+        toast.success("Snoozed for 10 minutes");
+        broadcastReminderAction('SNOOZED', { id });
+        fetchReminders();
+      } else {
+        fetchReminders();
+      }
     } catch (err) {
       console.error(err);
     }
@@ -212,6 +254,7 @@ export default function AssistantWidget({ user }) {
       if (res.data.success) {
         setHistory(prev => [...prev, { role: 'ai', content: res.data.reply }]);
         setReminders(res.data.reminders);
+        broadcastReminderAction('FETCH'); // Let other tabs/components know!
       }
     } catch (error) {
       toast.error("Assistant failed to respond.");
@@ -227,8 +270,17 @@ export default function AssistantWidget({ user }) {
     }
   }, [isOpen]);
 
+  // Hide if on auth page or user is not logged in
+  if (!user || location.pathname === '/auth') {
+    return null;
+  }
+
   return (
-    <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end">
+    <div className={`fixed bottom-6 right-6 z-[9999] flex flex-col items-end ${
+      (location.pathname === '/task-prompter' || location.pathname === '/work-station') 
+        ? 'max-md:hidden' 
+        : ''
+    }`}>
       <AnimatePresence>
         {isOpen && (
           <motion.div
@@ -240,7 +292,7 @@ export default function AssistantWidget({ user }) {
             style={{ maxHeight: '600px', height: 'calc(100vh - 120px)' }}
           >
             {/* Header */}
-            <div className="p-4 bg-blue-500 text-white flex justify-between items-center rounded-t-3xl">
+            <div className="p-3 bg-blue-500 text-white flex justify-between items-center rounded-t-3xl">
               <div className="flex items-center space-x-2">
                 <Bell className="w-5 h-5" />
                 <h3 className="font-bold">Reminders</h3>

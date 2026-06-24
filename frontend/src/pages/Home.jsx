@@ -1,8 +1,58 @@
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
-import { Zap, Calendar, BrainCircuit, ArrowRight } from 'lucide-react';
+import { Zap, Calendar, BrainCircuit } from 'lucide-react';
+import axios from 'axios';
+import toast from 'react-hot-toast';
+import CalendarWidget from '../components/CalendarWidget';
+import RemindersDashboard from '../components/RemindersDashboard';
 
 export default function Home({ isAuthenticated }) {
+  const [tasks, setTasks] = useState([]);
+
+  // Fetch tasks only if authenticated
+  const fetchTasks = async () => {
+    if (!isAuthenticated) return;
+    try {
+      const response = await axios.get('http://localhost:5050/api/tasks/prioritized', { withCredentials: true });
+      if (response.data.success) {
+        setTasks(response.data.data);
+      }
+    } catch (error) {
+      console.error("Failed to fetch tasks", error);
+    }
+  };
+
+  useEffect(() => {
+    fetchTasks();
+    if (isAuthenticated) {
+      const interval = setInterval(fetchTasks, 60000);
+      return () => clearInterval(interval);
+    }
+  }, [isAuthenticated]);
+
+  const handleToggleComplete = async (taskId, currentStatus) => {
+    try {
+      const newStatus = currentStatus === 'completed' ? 'pending' : 'completed';
+      setTasks(prev => prev.map(t => t._id === taskId ? { ...t, status: newStatus } : t));
+      
+      const response = await axios.put(`http://localhost:5050/api/tasks/${taskId}/status`, {
+        status: newStatus
+      }, { withCredentials: true });
+
+      if (response.data.success) {
+        if (newStatus === 'completed') toast.success("Task completed! Great job.");
+        else toast.success("Task restored.");
+      } else {
+        toast.error("Failed to update task status");
+        fetchTasks();
+      }
+    } catch (error) {
+      toast.error("Failed to update task status");
+      fetchTasks();
+    }
+  };
+
   const containerVariants = {
     hidden: { opacity: 0 },
     visible: { opacity: 1, transition: { staggerChildren: 0.2 } }
@@ -28,7 +78,7 @@ export default function Home({ isAuthenticated }) {
         className="absolute bottom-1/4 right-1/4 w-[500px] h-[500px] bg-slate-600/20 dark:bg-slate-500/10 rounded-full blur-[120px] pointer-events-none" 
       />
 
-      <motion.div variants={containerVariants} initial="hidden" animate="visible" className="max-w-4xl text-center z-10">
+      <motion.div variants={containerVariants} initial="hidden" animate="visible" className="max-w-7xl text-center z-10 w-full">
         
         <motion.h1 variants={itemVariants} className="text-5xl md:text-7xl font-extrabold tracking-tight mb-6 text-neutral-900 dark:text-white mt-8">
           The Last-Minute <br />
@@ -57,6 +107,24 @@ export default function Home({ isAuthenticated }) {
             </Link>
           )}
         </motion.div>
+
+        {/* Dashboard Grid for Authenticated Users */}
+        {isAuthenticated && (
+          <motion.div 
+            variants={itemVariants}
+            className="grid grid-cols-1 lg:grid-cols-2 gap-8 w-full mt-16 max-w-7xl mx-auto text-left items-start"
+          >
+            {/* Left: Reminders Dashboard */}
+            <div className="w-full">
+              <RemindersDashboard />
+            </div>
+
+            {/* Right: Calendar Widget */}
+            <div className="w-full">
+              <CalendarWidget tasks={tasks} handleToggleComplete={handleToggleComplete} />
+            </div>
+          </motion.div>
+        )}
 
         {/* Feature Grid */}
         <motion.div variants={itemVariants} className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-20 text-left pb-10">

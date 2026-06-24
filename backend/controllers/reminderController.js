@@ -21,9 +21,10 @@ exports.handleReminderChat = async (req, res) => {
     const activeReminders = await Reminder.find({ userId, status: 'active' });
 
     // Parse intent
+    const safeHistory = Array.isArray(history) ? history.slice(-10) : [];
     const aiResponse = await parseReminderMessage(
       message, 
-      history, 
+      safeHistory, 
       activeTasks, 
       activeReminders, 
       timezone, 
@@ -47,15 +48,20 @@ exports.handleReminderChat = async (req, res) => {
     } 
     else if (action === 'UPDATE' && extractedReminderUpdate) {
       const { reminderId, title, remindAt } = extractedReminderUpdate;
-      const updateData = {};
-      if (title) updateData.title = title;
-      if (remindAt) updateData.remindAt = new Date(remindAt);
+      if (mongoose.Types.ObjectId.isValid(reminderId)) {
+        const updateData = {};
+        if (title) updateData.title = title;
+        if (remindAt) updateData.remindAt = new Date(remindAt);
 
-      await Reminder.findOneAndUpdate({ _id: reminderId, userId }, updateData);
+        await Reminder.findOneAndUpdate({ _id: reminderId, userId }, updateData);
+      }
       updatedReminders = await Reminder.find({ userId, status: 'active' });
     }
     else if (action === 'DISMISS' && extractedReminderDismiss) {
-      await Reminder.findOneAndUpdate({ _id: extractedReminderDismiss.reminderId, userId }, { status: 'dismissed' });
+      const { reminderId } = extractedReminderDismiss;
+      if (mongoose.Types.ObjectId.isValid(reminderId)) {
+        await Reminder.findOneAndUpdate({ _id: reminderId, userId }, { status: 'dismissed' });
+      }
       updatedReminders = await Reminder.find({ userId, status: 'active' });
     }
 
@@ -109,6 +115,12 @@ exports.snoozeReminder = async (req, res) => {
     const reminder = await Reminder.findOne({ _id: id, userId: req.user.id });
     if (!reminder) {
       return res.status(404).json({ success: false, message: 'Reminder not found' });
+    }
+    if (!reminder.snoozable) {
+      return res.status(403).json({ success: false, message: 'This reminder cannot be snoozed' });
+    }
+    if (reminder.status !== 'active') {
+      return res.status(400).json({ success: false, message: 'Only active reminders can be snoozed' });
     }
 
     // Add 10 minutes (600,000 ms) to current remindAt time
