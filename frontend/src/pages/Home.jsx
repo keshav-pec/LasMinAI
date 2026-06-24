@@ -66,17 +66,9 @@ export default function Home({ isAuthenticated }) {
   return (
     <div className="min-h-[calc(100vh-73px)] flex flex-col items-center justify-center relative overflow-hidden px-6 bg-white dark:bg-[#131314]">
       
-      {/* Animated Mesh Gradients */}
-      <motion.div 
-        animate={{ scale: [1, 1.2, 1], rotate: [0, 90, 0] }} 
-        transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
-        className="absolute top-1/4 left-1/4 w-[500px] h-[500px] dark:bg-blue-500/10 rounded-full blur-[120px] pointer-events-none" 
-      />
-      <motion.div 
-        animate={{ scale: [1, 1.5, 1], rotate: [0, -90, 0] }} 
-        transition={{ duration: 25, repeat: Infinity, ease: "linear" }}
-        className="absolute bottom-1/4 right-1/4 w-[500px] h-[500px] bg-slate-600/20 dark:bg-slate-500/10 rounded-full blur-[120px] pointer-events-none" 
-      />
+      {/* Static Mesh Gradients for Performance */}
+      <div className="absolute top-1/4 left-1/4 w-[500px] h-[500px] dark:bg-blue-500/10 rounded-full blur-[120px] pointer-events-none" />
+      <div className="absolute bottom-1/4 right-1/4 w-[500px] h-[500px] bg-slate-600/20 dark:bg-slate-500/10 rounded-full blur-[120px] pointer-events-none" />
 
       <motion.div variants={containerVariants} initial="hidden" animate="visible" className="max-w-7xl text-center z-10 w-full">
         

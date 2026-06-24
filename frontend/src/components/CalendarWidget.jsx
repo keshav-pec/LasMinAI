@@ -1,8 +1,8 @@
-import { useState } from 'react';
+import { useState, useMemo, memo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronLeft, ChevronRight, CheckCircle2, Clock, Check } from 'lucide-react';
 
-export default function CalendarWidget({ tasks = [], handleToggleComplete }) {
+const CalendarWidget = memo(function CalendarWidget({ tasks = [], handleToggleComplete }) {
   const [selectedDate, setSelectedDate] = useState(new Date());
 
   // Date Navigation
@@ -26,18 +26,20 @@ export default function CalendarWidget({ tasks = [], handleToggleComplete }) {
   };
 
   // Filter tasks for the selected date
-  const filteredTasks = tasks.filter(task => {
-    const deadlineDate = new Date(task.deadline);
-    const taskIsOverdue = task.status === 'overdue' || deadlineDate < new Date();
-    
-    if (isToday(selectedDate) && taskIsOverdue && task.status !== 'completed') {
-      return true; // Show overdue tasks on today's view
-    }
+  const filteredTasks = useMemo(() => {
+    return tasks.filter(task => {
+      const deadlineDate = new Date(task.deadline);
+      const taskIsOverdue = task.status === 'overdue' || deadlineDate < new Date();
+      
+      if (isToday(selectedDate) && taskIsOverdue && task.status !== 'completed') {
+        return true; // Show overdue tasks on today's view
+      }
 
-    return deadlineDate.getDate() === selectedDate.getDate() &&
-           deadlineDate.getMonth() === selectedDate.getMonth() &&
-           deadlineDate.getFullYear() === selectedDate.getFullYear();
-  });
+      return deadlineDate.getDate() === selectedDate.getDate() &&
+             deadlineDate.getMonth() === selectedDate.getMonth() &&
+             deadlineDate.getFullYear() === selectedDate.getFullYear();
+    });
+  }, [tasks, selectedDate]);
 
   // Calculate color based on priority
   const getPriorityColor = (score) => {
@@ -138,4 +140,6 @@ export default function CalendarWidget({ tasks = [], handleToggleComplete }) {
       </div>
     </div>
   );
-}
+});
+
+export default CalendarWidget;
