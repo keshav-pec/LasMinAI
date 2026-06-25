@@ -166,7 +166,7 @@ const intentSchema = {
 /**
  * Parses the message, injects live DB context, and determines the action.
  */
-const parseUserMessage = async (userMessage, history = [], currentTasks = [], userTimezone = 'Asia/Kolkata', localTime = '') => {
+const parseUserMessage = async (userMessage, history = [], currentTasks = [], userTimezone = 'Asia/Kolkata', localTime = '', timezoneOffset = '+05:30') => {
   try {
     const now = new Date();
     
@@ -185,7 +185,8 @@ const parseUserMessage = async (userMessage, history = [], currentTasks = [], us
       4. If the user wants to MODIFY an existing task, set action to 'UPDATE'. You MUST use semantic fuzzy matching to map the task to the Live Context and extract its exact '_id' as 'taskIdToUpdate' inside the 'extractedTaskUpdate' object. You MUST ALSO extract and provide the new values for the properties being updated.
       5. If you have confused with two or more tasks, then ask the user exactly which task he/she wants to modify or ask about.
       6. CRITICAL: In your 'conversationalReply', you MUST convert all task deadlines from UTC to the 'User Timezone' before displaying them to the user. Never show raw UTC times to the user.
-      7. ${COMMON_FORMATTING_RULES}
+      7. CRITICAL TIME FORMATTING: The user's exact current UTC offset is '${timezoneOffset}'. You MUST explicitly append '${timezoneOffset}' to the end of your ISO string (e.g. YYYY-MM-DDTHH:mm:00${timezoneOffset}). Do NOT append 'Z' and do NOT attempt to calculate UTC mathematically yourself.
+      8. ${COMMON_FORMATTING_RULES}
     `;
 
     const formattedContents = history.map(msg => ({
@@ -267,7 +268,7 @@ const reminderIntentSchema = {
 /**
  * Parses the reminder message, injects live tasks and active reminders context.
  */
-const parseReminderMessage = async (userMessage, history = [], activeTasks = [], activeReminders = [], userTimezone = 'Asia/Kolkata', localTime = '') => {
+const parseReminderMessage = async (userMessage, history = [], activeTasks = [], activeReminders = [], userTimezone = 'Asia/Kolkata', localTime = '', timezoneOffset = '+05:30') => {
   try {
     const now = new Date();
     
@@ -284,7 +285,7 @@ const parseReminderMessage = async (userMessage, history = [], activeTasks = [],
       1. You manage CUSTOM REMINDERS, not core tasks.
       2. If the user asks for reminders, set action to 'READ' and list them.
       3. If the user wants to create a reminder, set action to 'CREATE' and extract 'title' and 'remindAt' (ISO 8601).
-         CRITICAL: The 'remindAt' ISO string MUST include the correct timezone offset for ${userTimezone} (e.g., +05:30 for India) or be converted perfectly to UTC 'Z'. Do NOT just append 'Z' to the local time, which causes an offset error!
+         CRITICAL: The user's exact current UTC offset is '${timezoneOffset}'. You MUST explicitly append '${timezoneOffset}' to the end of your ISO string (e.g. YYYY-MM-DDTHH:mm:00${timezoneOffset}). Do NOT append 'Z' and do NOT attempt to calculate UTC mathematically yourself.
       4. If modifying, set action to 'UPDATE' and provide 'reminderId'.
       5. If they want to dismiss/delete a reminder, set action to 'DISMISS' and provide 'reminderId'.
       6. CRITICAL TONE RULE: Your conversationalReply should be short and to the point. Do not over-explain. Do not mention the user's task load unless they specifically ask or it directly conflicts with their reminder request.
@@ -373,6 +374,14 @@ const orchestratorSchema = {
       type: Type.STRING,
       description: "The routed intent of the user's message.",
       enum: ["TASK_PROMPTER", "WORK_STATION", "REMINDER", "GENERAL_CHAT", "UNKNOWN"]
+    },
+    generalReply: {
+      type: Type.STRING,
+      description: "If intent is GENERAL_CHAT or UNKNOWN, provide a natural conversational reply here."
+    },
+    generalReplyVoice: {
+      type: Type.STRING,
+      description: "If intent is GENERAL_CHAT or UNKNOWN, provide the plain-text script to be spoken aloud."
     }
   },
   required: ["intent"]
@@ -394,6 +403,8 @@ const parseOrchestratorIntent = async (userMessage) => {
       5. UNKNOWN: If the request is complete gibberish.
 
       IMPORTANT EXCEPTION: If the user says "remind me to [do something]", this usually belongs in TASK_PROMPTER as a new to-do list item, UNLESS they specifically want a standalone custom reminder alert at a specific time. Use your best judgment.
+      
+      If the intent is GENERAL_CHAT or UNKNOWN, you MUST fill out 'generalReply' and 'generalReplyVoice' to answer their question directly, so we don't have to make a second AI call. Be concise and friendly.
     `;
 
     const response = await ai.models.generateContent({

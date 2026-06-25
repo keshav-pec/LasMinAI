@@ -19,6 +19,7 @@ export default function GlobalVoiceAssistant({ isAuthenticated }) {
   // Use a ref for state to avoid stale closures in event listeners (setTimeout)
   const stateRef = useRef({ isProcessing: false });
   const processCommandRef = useRef();
+  const silenceTimerRef = useRef(null);
 
   // Keep ref synchronized with actual state
   useEffect(() => {
@@ -38,6 +39,8 @@ export default function GlobalVoiceAssistant({ isAuthenticated }) {
     recognitionRef.current.lang = 'en-US';
 
     recognitionRef.current.onresult = (event) => {
+      if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
+
       let finalTranscript = '';
       for (let i = event.resultIndex; i < event.results.length; i++) {
         if (event.results[i].isFinal) {
@@ -48,10 +51,11 @@ export default function GlobalVoiceAssistant({ isAuthenticated }) {
       if (finalTranscript) {
         setTranscript(finalTranscript);
         
-        // Since the microphone is manually toggled on, any completed sentence is treated as the command.
-        if (processCommandRef.current) {
-          processCommandRef.current(finalTranscript);
-        }
+        silenceTimerRef.current = setTimeout(() => {
+          if (processCommandRef.current && !stateRef.current.isProcessing) {
+            processCommandRef.current(finalTranscript);
+          }
+        }, 2000);
       }
     };
 
@@ -68,6 +72,8 @@ export default function GlobalVoiceAssistant({ isAuthenticated }) {
   }, []); // Empty dependency array so it only mounts once!
 
   const toggleListening = () => {
+    if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
+    
     if (isListening) {
       recognitionRef.current?.stop();
       setIsListening(false);
@@ -104,11 +110,20 @@ export default function GlobalVoiceAssistant({ isAuthenticated }) {
     try {
       const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
       const localTime = new Date().toLocaleString('en-US', { timeZone: userTimezone });
+      
+      // Calculate exact offset string (e.g., '+05:30' or '-04:00')
+      const offsetMinutes = new Date().getTimezoneOffset();
+      const sign = offsetMinutes > 0 ? '-' : '+';
+      const absOffset = Math.abs(offsetMinutes);
+      const hours = String(Math.floor(absOffset / 60)).padStart(2, '0');
+      const minutes = String(absOffset % 60).padStart(2, '0');
+      const timezoneOffset = `${sign}${hours}:${minutes}`;
 
       const response = await axios.post(`${import.meta.env.VITE_API_URL}/api/voice/process`, {
         message: commandText,
         userTimezone,
-        localTime
+        localTime,
+        timezoneOffset
       }, { withCredentials: true });
 
       if (response.data.success) {

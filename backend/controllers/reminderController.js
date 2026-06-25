@@ -6,7 +6,7 @@ const { parseReminderMessage } = require('../services/geminiService');
 // Handle Chat for Reminders
 exports.handleReminderChat = async (req, res) => {
   try {
-    const { message, history, localTime, timezone } = req.body;
+    const { message, history, localTime, timezone, timezoneOffset } = req.body;
     const userId = req.user.id;
 
     if (!message || message.length > 500) {
@@ -28,7 +28,8 @@ exports.handleReminderChat = async (req, res) => {
       activeTasks, 
       activeReminders, 
       timezone, 
-      localTime
+      localTime,
+      timezoneOffset
     );
 
     const { action, conversationalReply, voiceReply, extractedReminderCreate, extractedReminderUpdate, extractedReminderDismiss } = aiResponse;

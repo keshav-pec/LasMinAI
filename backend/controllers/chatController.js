@@ -4,7 +4,7 @@ const { calculatePriorityScore } = require('../utils/priorityCalculator');
 
 exports.handleChatMessage = async (req, res) => {
   try {
-    const { message, history, userTimezone, localTime } = req.body;
+    const { message, history, userTimezone, localTime, timezoneOffset } = req.body;
 
     if (!message) {
       return res.status(400).json({ success: false, error: "Message is required." });
@@ -26,7 +26,7 @@ exports.handleChatMessage = async (req, res) => {
                                 .select('_id title deadline complexity technicalEffort status');
 
     // 3. Pass everything to the AI Brain
-    const aiAnalysis = await parseUserMessage(message, history || [], liveTasks, userTimezone, localTime);
+    const aiAnalysis = await parseUserMessage(message, history || [], liveTasks, userTimezone, localTime, timezoneOffset);
 
     // ==========================================
     // ACTION ROUTING

@@ -4,6 +4,8 @@ import { Bell, X, Send, Mic, MicOff, ChevronDown, ChevronUp, Clock, Check } from
 import { useLocation } from 'react-router-dom';
 import axios from 'axios';
 import toast from 'react-hot-toast';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { subscribeToReminderActions, broadcastReminderAction } from '../utils/reminderSync';
 
 export default function AssistantWidget({ user }) {
@@ -149,6 +151,9 @@ export default function AssistantWidget({ user }) {
     
     // Show central dialog
     setTriggeredReminder(reminder);
+
+    // Instant-sync to Chrome Extension (bypasses 1-minute poll limit)
+    window.postMessage({ type: 'LASMIN_REMINDER_DUE', reminders: [reminder] }, '*');
 
     // 2. Service Worker Push Notification
     if ('serviceWorker' in navigator && 'PushManager' in window) {
@@ -362,7 +367,19 @@ export default function AssistantWidget({ user }) {
               {history.map((msg, idx) => (
                 <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                   <div className={`max-w-[85%] p-3 rounded-2xl text-sm ${msg.role === 'user' ? 'bg-blue-500 text-white rounded-br-sm' : 'bg-neutral-100 dark:bg-neutral-800 text-neutral-800 dark:text-neutral-200 rounded-bl-sm'}`}>
-                    {msg.content}
+                    <ReactMarkdown 
+                      remarkPlugins={[remarkGfm]}
+                      components={{
+                        p: ({node, ...props}) => <p className="mb-2 last:mb-0" {...props} />,
+                        ul: ({node, ...props}) => <ul className="list-disc pl-4 mb-2 space-y-1" {...props} />,
+                        ol: ({node, ...props}) => <ol className="list-decimal pl-4 mb-2 space-y-1" {...props} />,
+                        li: ({node, ...props}) => <li {...props} />,
+                        strong: ({node, ...props}) => <strong className="font-bold text-blue-600 dark:text-blue-400" {...props} />,
+                        code: ({node, inline, ...props}) => <code className="bg-black/10 dark:bg-white/10 px-1.5 py-0.5 rounded-md text-xs font-mono font-semibold" {...props} />
+                      }}
+                    >
+                      {msg.content}
+                    </ReactMarkdown>
                   </div>
                 </div>
               ))}

@@ -37,7 +37,7 @@ const runController = (controllerFn, req) => {
  * 4. Returns JSON response and TTS audio string (base64).
  */
 router.post('/process', requireAuth, async (req, res) => {
-  const { message, userTimezone = 'Asia/Kolkata', localTime = '' } = req.body;
+  const { message, userTimezone = 'Asia/Kolkata', localTime = '', timezoneOffset = '+05:30' } = req.body;
 
   try {
     // 1. Orchestrate Intent
@@ -69,11 +69,10 @@ router.post('/process', requireAuth, async (req, res) => {
       finalVoiceReply = controllerRes.data.voiceReply || finalReply;
       actionTaken = controllerRes.data.actionTaken || "NONE";
 
-    } else if (intent === 'GENERAL_CHAT') {
-      const aiResponse = await parseGeneralMessage(message, userTimezone, localTime);
+    } else if (intent === 'GENERAL_CHAT' || intent === 'UNKNOWN') {
+      const aiResponse = await parseGeneralMessage(message, userTimezone, localTime, timezoneOffset);
       finalReply = aiResponse.reply;
-      finalVoiceReply = aiResponse.voiceReply || finalReply;
-
+      finalVoiceReply = orchestratorDecision.generalReplyVoice || finalReply;
     } else {
       finalReply = "I'm not quite sure how to help with that. Could you rephrase it?";
     }
