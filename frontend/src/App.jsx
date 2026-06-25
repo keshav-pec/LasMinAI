@@ -7,6 +7,7 @@ import Auth from './pages/Auth';
 import TaskPrompter from './pages/TaskPrompter'; // Renamed component
 import WorkStation from './pages/WorkStation';
 import AssistantWidget from './components/AssistantWidget';
+import GlobalVoiceAssistant from './components/GlobalVoiceAssistant';
 
 const ProtectedRoute = ({ isAuthenticated, children }) => {
   if (isAuthenticated === null) return null;
@@ -56,6 +57,7 @@ export default function App() {
         }} 
       />
       <AssistantWidget user={userData} />
+      <GlobalVoiceAssistant isAuthenticated={isAuthenticated} />
       <div className="min-h-screen bg-neutral-50 dark:bg-[#131314] text-neutral-900 dark:text-neutral-200 font-sans transition-colors duration-500">
         <Navbar userData={userData} setUserData={setUserData} />
         <Routes>

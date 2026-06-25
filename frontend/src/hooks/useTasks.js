@@ -19,10 +19,19 @@ export function useTasks(isAuthenticated = true) {
 
   useEffect(() => {
     fetchTasks();
+    
+    const handleUpdate = () => fetchTasks();
+    window.addEventListener('lasmin_tasks_updated', handleUpdate);
+
     if (isAuthenticated) {
       const interval = setInterval(fetchTasks, 60000);
-      return () => clearInterval(interval);
+      return () => {
+        clearInterval(interval);
+        window.removeEventListener('lasmin_tasks_updated', handleUpdate);
+      };
     }
+    
+    return () => window.removeEventListener('lasmin_tasks_updated', handleUpdate);
   }, [isAuthenticated]);
 
   const handleToggleComplete = async (taskId, currentStatus) => {

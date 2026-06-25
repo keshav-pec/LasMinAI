@@ -37,6 +37,7 @@ exports.handleWorkstationChat = async (req, res) => {
     res.status(200).json({
       success: true,
       reply: aiAnalysis.conversationalReply,
+      voiceReply: aiAnalysis.voiceReply,
       actionTaken: aiAnalysis.action,
       calendarStatus,
       calendarLinks,

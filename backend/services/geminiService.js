@@ -13,6 +13,9 @@ const COMMON_FORMATTING_RULES = `
          - Use double line breaks (\\n\\n) between paragraphs. 
          - You MUST use emojis, **bolding** for keywords. 
          - Use inline code blocks (\`like this\`) to highlight specific task names or times. Make it look beautiful and easy to skim.
+         - NATURAL DATES: When displaying dates or times in your conversational reply, you MUST use natural language. If a date is today, say "Today". If it is tomorrow, say "Tomorrow". Only use exact dates (e.g., "June 28th") for dates further in the future. 
+         - NEVER mention the year (e.g., "2026").
+         - NEVER mention the literal timezone string (e.g., "Asia/Calcutta", "UTC", "IST"). Assume the user knows their own timezone.
 `;
 
 // ==========================================
@@ -23,7 +26,11 @@ const workstationSchema = {
   properties: {
     conversationalReply: { 
       type: Type.STRING, 
-      description: "A natural, helpful response using Markdown. Ask the user for their preferred strategy or available time if not provided." 
+      description: "A visually beautiful response for the UI using Markdown, bullets, and emojis." 
+    },
+    voiceReply: {
+      type: Type.STRING,
+      description: "A plain-text script specifically written to be spoken out loud by a voice assistant. NEVER use Markdown, emojis, URLs, or weird time formats (like ISO strings or 'IST'). Write exactly how a human would speak it."
     },
     action: { 
       type: Type.STRING, 
@@ -51,7 +58,7 @@ const workstationSchema = {
       items: { type: Type.STRING }
     }
   },
-  required: ["conversationalReply", "action"]
+  required: ["conversationalReply", "voiceReply", "action"]
 };
 
 /**
@@ -101,7 +108,8 @@ const parseWorkstationMessage = async (userMessage, history = [], currentTasks =
       }
     });
 
-    return JSON.parse(response.text);
+    const cleanText = response.text.replace(/```json/gi, '').replace(/```/g, '').trim();
+    return JSON.parse(cleanText);
   } catch (error) {
     console.error(`❌ Workstation Parsing Error: ${error.message || error}`);
     throw error;
@@ -116,7 +124,11 @@ const intentSchema = {
   properties: {
     conversationalReply: { 
       type: Type.STRING, 
-      description: "A natural, helpful response using Markdown formatting." 
+      description: "A visually beautiful response for the UI using Markdown, bullets, and emojis." 
+    },
+    voiceReply: {
+      type: Type.STRING,
+      description: "A plain-text script specifically written to be spoken out loud by a voice assistant. NEVER use Markdown, emojis, URLs, or weird time formats (like ISO strings or 'IST'). Write exactly how a human would speak it."
     },
     action: { 
       type: Type.STRING, 
@@ -148,7 +160,7 @@ const intentSchema = {
       required: ["taskIdToUpdate"]
     }
   },
-  required: ["conversationalReply", "action"]
+  required: ["conversationalReply", "voiceReply", "action"]
 };
 
 /**
@@ -193,7 +205,8 @@ const parseUserMessage = async (userMessage, history = [], currentTasks = [], us
       }
     });
 
-    return JSON.parse(response.text);
+    const cleanText = response.text.replace(/```json/gi, '').replace(/```/g, '').trim();
+    return JSON.parse(cleanText);
   } catch (error) {
     console.error(`❌ Intent Parsing Error: ${error.message || error}`);
     throw error;
@@ -208,7 +221,11 @@ const reminderIntentSchema = {
   properties: {
     conversationalReply: { 
       type: Type.STRING, 
-      description: "A short, concise, and to-the-point response. Do NOT over-explain tasks." 
+      description: "A visually beautiful response for the UI using Markdown, bullets, and emojis." 
+    },
+    voiceReply: {
+      type: Type.STRING,
+      description: "A plain-text script specifically written to be spoken out loud by a voice assistant. NEVER use Markdown, emojis, URLs, or weird time formats (like ISO strings or 'IST'). Write exactly how a human would speak it."
     },
     action: { 
       type: Type.STRING, 
@@ -244,7 +261,7 @@ const reminderIntentSchema = {
       required: ["reminderId"]
     }
   },
-  required: ["conversationalReply", "action"]
+  required: ["conversationalReply", "voiceReply", "action"]
 };
 
 /**
@@ -271,8 +288,7 @@ const parseReminderMessage = async (userMessage, history = [], activeTasks = [],
       4. If modifying, set action to 'UPDATE' and provide 'reminderId'.
       5. If they want to dismiss/delete a reminder, set action to 'DISMISS' and provide 'reminderId'.
       6. CRITICAL TONE RULE: Your conversationalReply should be short and to the point. Do not over-explain. Do not mention the user's task load unless they specifically ask or it directly conflicts with their reminder request.
-      7. CRITICAL TIME FORMATTING: NEVER use "UTC" in your conversationalReply. Always convert the time to a natural, human-readable format based on the User Timezone provided above (e.g., "1:00 AM", "Tomorrow at 5:30 PM").
-      8. ${COMMON_FORMATTING_RULES}
+      7. ${COMMON_FORMATTING_RULES}
     `;
 
     const formattedContents = history.map(msg => ({
@@ -292,15 +308,117 @@ const parseReminderMessage = async (userMessage, history = [], activeTasks = [],
       }
     });
 
-    return JSON.parse(response.text);
+    const cleanText = response.text.replace(/```json/gi, '').replace(/```/g, '').trim();
+    return JSON.parse(cleanText);
   } catch (error) {
     console.error(`❌ Reminder Parsing Error: ${error.message || error}`);
     throw error;
   }
 };
 
-module.exports = { 
-  parseWorkstationMessage, 
+// ==========================================
+// 4. GENERAL CHAT SCHEMA
+// ==========================================
+const generalChatSchema = {
+  type: Type.OBJECT,
+  properties: {
+    reply: {
+      type: Type.STRING,
+      description: "A natural, conversational reply to the user."
+    },
+    voiceReply: {
+      type: Type.STRING,
+      description: "A plain-text script specifically written to be spoken out loud by a voice assistant. NEVER use Markdown, emojis, URLs, or weird time formats. Write exactly how a human would speak it."
+    }
+  },
+  required: ["reply", "voiceReply"]
+};
+
+const parseGeneralMessage = async (userMessage, userTimezone, localTime) => {
+  try {
+    const systemPrompt = `
+      You are LasMinAI, an intelligent productivity assistant.
+      The user is asking a general conversational question (e.g., "how are you", "what time is it").
+      Answer naturally and concisely.
+      Current Time: ${localTime}
+      User Timezone: ${userTimezone}
+    `;
+
+    const response = await ai.models.generateContent({
+      model: 'gemini-3.1-flash-lite',
+      contents: [{ role: 'user', parts: [{ text: userMessage }] }],
+      config: {
+        systemInstruction: systemPrompt,
+        responseMimeType: 'application/json',
+        responseSchema: generalChatSchema,
+        temperature: 0.7, 
+      }
+    });
+
+    const cleanText = response.text.replace(/```json/gi, '').replace(/```/g, '').trim();
+    return JSON.parse(cleanText);
+  } catch (error) {
+    console.error(`❌ General Chat Parsing Error: ${error.message || error}`);
+    throw error;
+  }
+};
+
+// ==========================================
+// 5. MASTER ORCHESTRATOR SCHEMA
+// ==========================================
+const orchestratorSchema = {
+  type: Type.OBJECT,
+  properties: {
+    intent: {
+      type: Type.STRING,
+      description: "The routed intent of the user's message.",
+      enum: ["TASK_PROMPTER", "WORK_STATION", "REMINDER", "GENERAL_CHAT", "UNKNOWN"]
+    }
+  },
+  required: ["intent"]
+};
+
+/**
+ * Determines which of the 3 modules the user's spoken intent belongs to.
+ */
+const parseOrchestratorIntent = async (userMessage) => {
+  try {
+    const systemPrompt = `
+      You are the Master Orchestrator for LasMinAI.
+      Your only job is to evaluate the user's spoken request and route it to the correct AI module.
+
+      1. TASK_PROMPTER: If the user is logging a new task, modifying an existing task, or asking what tasks they have to do today. Example: "Remind me to buy groceries", "Log a new task to fix the bug", "What's on my to-do list?". (Note: A task is a general to-do item. Do not confuse with custom time-based reminders).
+      2. WORK_STATION: If the user is asking to schedule time blocks on their calendar, wants to start working, execute tasks, use pomodoro, or asks for productivity strategies. Example: "I have 2 hours right now", "Let's use pomodoro", "Schedule my math homework for tonight".
+      3. REMINDER: If the user explicitly wants a simple custom reminder (not a core to-do task). Example: "Remind me to call mom at 5pm", "What are my reminders?".
+      4. GENERAL_CHAT: If the user is asking a general conversational question, greeting you, or asking for facts like "what is the time now", "hello", "how are you".
+      5. UNKNOWN: If the request is complete gibberish.
+
+      IMPORTANT EXCEPTION: If the user says "remind me to [do something]", this usually belongs in TASK_PROMPTER as a new to-do list item, UNLESS they specifically want a standalone custom reminder alert at a specific time. Use your best judgment.
+    `;
+
+    const response = await ai.models.generateContent({
+      model: 'gemini-3.1-flash-lite',
+      contents: [{ role: 'user', parts: [{ text: userMessage }] }],
+      config: {
+        systemInstruction: systemPrompt,
+        responseMimeType: 'application/json',
+        responseSchema: orchestratorSchema,
+        temperature: 0.1, 
+      }
+    });
+
+    const cleanText = response.text.replace(/```json/gi, '').replace(/```/g, '').trim();
+    return JSON.parse(cleanText);
+  } catch (error) {
+    console.error(`❌ Orchestrator Parsing Error: ${error.message || error}`);
+    throw error;
+  }
+};
+
+module.exports = {
   parseUserMessage,
-  parseReminderMessage
+  parseWorkstationMessage,
+  parseReminderMessage,
+  parseGeneralMessage,
+  parseOrchestratorIntent
 };

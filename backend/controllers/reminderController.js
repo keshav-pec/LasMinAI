@@ -31,7 +31,7 @@ exports.handleReminderChat = async (req, res) => {
       localTime
     );
 
-    const { action, conversationalReply, extractedReminderCreate, extractedReminderUpdate, extractedReminderDismiss } = aiResponse;
+    const { action, conversationalReply, voiceReply, extractedReminderCreate, extractedReminderUpdate, extractedReminderDismiss } = aiResponse;
 
     let updatedReminders = activeReminders;
 
@@ -68,6 +68,7 @@ exports.handleReminderChat = async (req, res) => {
     res.status(200).json({
       success: true,
       reply: conversationalReply,
+      voiceReply: voiceReply,
       reminders: updatedReminders,
       action
     });

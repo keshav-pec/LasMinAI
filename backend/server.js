@@ -9,6 +9,7 @@ const chatRoutes = require('./routes/chatRoutes');
 const taskRoutes = require('./routes/taskRoutes');
 const workstationRoutes = require('./routes/workstationRoutes');
 const reminderRoutes = require('./routes/reminderRoutes');
+const voiceRoutes = require('./routes/voiceRoutes');
 
 const app = express();
 
@@ -30,10 +31,9 @@ mongoose.connect(process.env.MONGO_URI)
 
 
 
-// ROUTE MIDDLEWARE
 const aiLimiter = rateLimit({
   windowMs: 1 * 60 * 1000, // 1 minute
-  max: 20, // Limit each IP to 20 requests per windowMs
+  max: 15, // Limit each IP to 15 requests per windowMs (matches Gemini 3.1 Flash Lite quota)
   message: { success: false, error: 'Too many requests to the AI engine, please try again after a minute.' },
   standardHeaders: true,
   legacyHeaders: false,
@@ -52,6 +52,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/chat', aiLimiter, chatRoutes);
 app.use('/api/workstation', aiLimiter, workstationRoutes);
 app.use('/api/reminders/chat', aiLimiter); // Strict rate limit for AI
+app.use('/api/voice', aiLimiter, voiceRoutes);
 app.use('/api/reminders', generalApiLimiter, reminderRoutes); // General limit for CRUD
 
 // Basic Health Check Route
