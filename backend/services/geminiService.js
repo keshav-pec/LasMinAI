@@ -4,7 +4,19 @@ require('dotenv').config();
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
 // ==========================================
-// 1. WORKSTATION CHAT & EXECUTION SCHEMAS
+// 1. SHARED CONSTANTS
+// ==========================================
+const COMMON_FORMATTING_RULES = `
+      CRITICAL FORMATTING RULES: 
+         - Your response MUST be highly visual and spread out.
+         - You MUST use true Markdown bullet points (\`-\`) on NEW LINES. NEVER write lists inline in a single paragraph. 
+         - Use double line breaks (\\n\\n) between paragraphs. 
+         - You MUST use emojis, **bolding** for keywords. 
+         - Use inline code blocks (\`like this\`) to highlight specific task names or times. Make it look beautiful and easy to skim.
+`;
+
+// ==========================================
+// 2. WORKSTATION CHAT & EXECUTION SCHEMAS
 // ==========================================
 const workstationSchema = {
   type: Type.OBJECT,
@@ -68,12 +80,8 @@ const parseWorkstationMessage = async (userMessage, history = [], currentTasks =
       8. Keep your tone highly motivating, professional, and use Markdown for readability.
       9. When discussing a task's 'complexity', natively translate its 1-10 integer into human-friendly terms (e.g., 1-2="very easy", 5="normal", 7-8="hard", 10="very complex"). Do not just quote raw numbers.
       10. CRITICAL: NEVER use or mention the word "complexity" in your conversational reply. The complexity metric is strictly for internal mathematical calculations only. Do not attempt to describe it or mention terms like "Normal complexity" or "Hard complexity".
-      11. CRITICAL FORMATTING RULES: 
-         - Your response MUST be highly visual and spread out.
-         - You MUST use true Markdown bullet points (\`-\`) on NEW LINES. NEVER write lists inline in a single paragraph. 
-         - Use double line breaks (\\n\\n) between paragraphs. 
-         - You MUST use emojis, **bolding** for keywords. 
-         - Use inline code blocks (\`like this\`) to highlight specific task names or times. Make it look beautiful and easy to skim.
+      11. ${COMMON_FORMATTING_RULES}
+      12. CRITICAL TIME FORMATTING: The 'startTime' and 'endTime' ISO strings MUST accurately reflect the ${userTimezone} timezone. Either calculate and append the exact correct offset (e.g., '+05:30' for IST) OR perform the exact math to convert the local time to true UTC and append 'Z'. Do NOT lazily append 'Z' to a local time without converting it, as this causes a severe timezone bug.
     `;
 
     const formattedContents = history.map(msg => ({
@@ -165,12 +173,7 @@ const parseUserMessage = async (userMessage, history = [], currentTasks = [], us
       4. If the user wants to MODIFY an existing task, set action to 'UPDATE'. You MUST use semantic fuzzy matching to map the task to the Live Context and extract its exact '_id' as 'taskIdToUpdate' inside the 'extractedTaskUpdate' object. You MUST ALSO extract and provide the new values for the properties being updated.
       5. If you have confused with two or more tasks, then ask the user exactly which task he/she wants to modify or ask about.
       6. CRITICAL: In your 'conversationalReply', you MUST convert all task deadlines from UTC to the 'User Timezone' before displaying them to the user. Never show raw UTC times to the user.
-      7. CRITICAL FORMATTING RULES: 
-         - Your response MUST be highly visual and spread out. 
-         - You MUST use true Markdown bullet points (\`-\`) on NEW LINES. NEVER write lists inline in a single paragraph. 
-         - Use double line breaks (\\n\\n) between paragraphs. 
-         - You MUST use emojis, **bolding** for keywords. 
-         - Use inline code blocks (\`like this\`) to highlight specific task names or times. Make it look beautiful and easy to skim.
+      7. ${COMMON_FORMATTING_RULES}
     `;
 
     const formattedContents = history.map(msg => ({
@@ -269,6 +272,7 @@ const parseReminderMessage = async (userMessage, history = [], activeTasks = [],
       5. If they want to dismiss/delete a reminder, set action to 'DISMISS' and provide 'reminderId'.
       6. CRITICAL TONE RULE: Your conversationalReply should be short and to the point. Do not over-explain. Do not mention the user's task load unless they specifically ask or it directly conflicts with their reminder request.
       7. CRITICAL TIME FORMATTING: NEVER use "UTC" in your conversationalReply. Always convert the time to a natural, human-readable format based on the User Timezone provided above (e.g., "1:00 AM", "Tomorrow at 5:30 PM").
+      8. ${COMMON_FORMATTING_RULES}
     `;
 
     const formattedContents = history.map(msg => ({

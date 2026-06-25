@@ -6,6 +6,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import toast from 'react-hot-toast';
 import CalendarWidget from '../components/CalendarWidget';
+import { useTasks } from '../hooks/useTasks';
 
 export default function WorkStation({ userData }) {
   const [messages, setMessages] = useState([
@@ -17,52 +18,12 @@ export default function WorkStation({ userData }) {
   ]);
   const [inputValue, setInputValue] = useState('');
   const [isListening, setIsListening] = useState(false);
-  const [tasks, setTasks] = useState([]);
   const [isTyping, setIsTyping] = useState(false);
   
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
 
-  // Fetch tasks
-  const fetchTasks = async () => {
-    try {
-      const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/tasks/prioritized`, { withCredentials: true });
-      if (response.data.success) {
-        setTasks(response.data.data);
-      }
-    } catch (error) {
-      console.error("Failed to fetch tasks", error);
-    }
-  };
-
-  const handleToggleComplete = async (taskId, currentStatus) => {
-    try {
-      const newStatus = currentStatus === 'completed' ? 'pending' : 'completed';
-      setTasks(prev => prev.map(t => t._id === taskId ? { ...t, status: newStatus } : t));
-      
-      const response = await axios.put(`${import.meta.env.VITE_API_URL}/api/tasks/${taskId}/status`, {
-        status: newStatus
-      }, { withCredentials: true });
-
-      if (response.data.success) {
-        if (newStatus === 'completed') toast.success("Task completed! Great job.");
-        else toast.success("Task restored.");
-      } else {
-        toast.error("Failed to update task status");
-        fetchTasks();
-      }
-    } catch (error) {
-      toast.error("Failed to update task status");
-      fetchTasks();
-    }
-  };
-
-  useEffect(() => {
-    fetchTasks();
-    // Refresh tasks periodically or after scheduling
-    const interval = setInterval(fetchTasks, 60000);
-    return () => clearInterval(interval);
-  }, []);
+  const { tasks, fetchTasks, handleToggleComplete } = useTasks(true);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });

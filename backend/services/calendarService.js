@@ -27,12 +27,12 @@ const pushScheduleToCalendar = async (oauth2Client, aiScheduleEvents, userTimezo
       description: event.focusModeRequired 
         ? '⚠️ High-Complexity Task. LasMinAI recommends disabling notifications.' 
         : 'LasMinAI autonomous scheduling block.',
-      start: { dateTime: event.startTime.replace(/Z$/, ''), timeZone: userTimezone },
-      end: { dateTime: event.endTime.replace(/Z$/, ''), timeZone: userTimezone },
+      start: { dateTime: new Date(event.startTime).toISOString() },
+      end: { dateTime: new Date(event.endTime).toISOString() },
       colorId: event.focusModeRequired ? '11' : '9',
       extendedProperties: {
         private: {
-          taskId: event.taskId
+          taskId: String(event.taskId)
         }
       }
     };
@@ -42,7 +42,7 @@ const pushScheduleToCalendar = async (oauth2Client, aiScheduleEvents, userTimezo
       const existingEvent = existingEventsList.find(e => 
         e.extendedProperties && 
         e.extendedProperties.private && 
-        e.extendedProperties.private.taskId === event.taskId
+        e.extendedProperties.private.taskId === String(event.taskId)
       );
 
       let response;

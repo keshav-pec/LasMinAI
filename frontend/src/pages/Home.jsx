@@ -1,57 +1,12 @@
-import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { Zap, Calendar, BrainCircuit } from 'lucide-react';
-import axios from 'axios';
-import toast from 'react-hot-toast';
+import { useTasks } from '../hooks/useTasks';
 import CalendarWidget from '../components/CalendarWidget';
 import RemindersDashboard from '../components/RemindersDashboard';
 
 export default function Home({ isAuthenticated }) {
-  const [tasks, setTasks] = useState([]);
-
-  // Fetch tasks only if authenticated
-  const fetchTasks = async () => {
-    if (!isAuthenticated) return;
-    try {
-      const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/tasks/prioritized`, { withCredentials: true });
-      if (response.data.success) {
-        setTasks(response.data.data);
-      }
-    } catch (error) {
-      console.error("Failed to fetch tasks", error);
-    }
-  };
-
-  useEffect(() => {
-    fetchTasks();
-    if (isAuthenticated) {
-      const interval = setInterval(fetchTasks, 60000);
-      return () => clearInterval(interval);
-    }
-  }, [isAuthenticated]);
-
-  const handleToggleComplete = async (taskId, currentStatus) => {
-    try {
-      const newStatus = currentStatus === 'completed' ? 'pending' : 'completed';
-      setTasks(prev => prev.map(t => t._id === taskId ? { ...t, status: newStatus } : t));
-      
-      const response = await axios.put(`${import.meta.env.VITE_API_URL}/api/tasks/${taskId}/status`, {
-        status: newStatus
-      }, { withCredentials: true });
-
-      if (response.data.success) {
-        if (newStatus === 'completed') toast.success("Task completed! Great job.");
-        else toast.success("Task restored.");
-      } else {
-        toast.error("Failed to update task status");
-        fetchTasks();
-      }
-    } catch (error) {
-      toast.error("Failed to update task status");
-      fetchTasks();
-    }
-  };
+  const { tasks, handleToggleComplete } = useTasks(isAuthenticated);
 
   const containerVariants = {
     hidden: { opacity: 0 },

@@ -73,6 +73,10 @@ router.get('/google/callback', async (req, res) => {
     // Save tokens in MongoDB
     let dbUser = await User.findOne({ googleId: user.id });
     if (dbUser) {
+      // Preserve refresh_token if Google didn't send a new one
+      if (!tokens.refresh_token && dbUser.googleTokens?.refresh_token) {
+        tokens.refresh_token = dbUser.googleTokens.refresh_token;
+      }
       dbUser.googleTokens = tokens;
       dbUser.name = user.name;
       dbUser.picture = user.picture;
