@@ -2,6 +2,17 @@
 const root = document.createElement('div');
 root.id = 'lasminai-ext-root';
 document.documentElement.appendChild(root);
+const safeSendMessage = (msg, callback) => {
+  if (!chrome.runtime?.id) {
+    console.warn("LasMinAI Extension context invalidated. Please refresh the page.");
+    return;
+  }
+  try {
+    chrome.runtime.sendMessage(msg, callback);
+  } catch(e) {
+    console.warn("LasMinAI Extension error:", e);
+  }
+};
 
 // 2. Build the Voice Assistant UI
 const micBtn = document.createElement('div');
@@ -135,7 +146,7 @@ async function processVoiceCommand(commandText) {
   const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
   const localTime = new Date().toLocaleString('en-US', { timeZone: userTimezone });
 
-  chrome.runtime.sendMessage({
+  safeSendMessage({
     type: 'PROXY_FETCH',
     url: '/api/voice/process',
     method: 'POST',
@@ -218,6 +229,28 @@ blockerOverlay.innerHTML = `
 root.appendChild(blockerOverlay);
 
 let activeReminderId = null;
+let mathChallenge = null;
+
+const generateMathProblem = () => {
+  const types = ['add', 'sub', 'square'];
+  const type = types[Math.floor(Math.random() * types.length)];
+  if (type === 'add') {
+    const a = Math.floor(Math.random() * 90) + 10;
+    const b = Math.floor(Math.random() * 90) + 10;
+    return { text: `${a} + ${b} = ?`, answer: a + b };
+  } else if (type === 'sub') {
+    const a = Math.floor(Math.random() * 90) + 10;
+    const b = Math.floor(Math.random() * 90) + 10;
+    const max = Math.max(a, b);
+    const min = Math.min(a, b);
+    return { text: `${max} - ${min} = ?`, answer: max - min };
+  } else {
+    const a = Math.floor(Math.random() * 21) + 5;
+    return { text: `${a}² = ?`, answer: a * a };
+  }
+};
+
+
 
 // 4. Listen for Blocker commands from Background
 chrome.runtime.onMessage.addListener((message) => {
@@ -227,44 +260,133 @@ chrome.runtime.onMessage.addListener((message) => {
     }
     const r = message.reminders[0];
     activeReminderId = r._id;
+    
+    // Reset math UI if it was previously open
+    mathChallenge = null;
+    btnDismiss.style.display = 'block';
+    btnSnooze.style.display = 'block';
+    const mt = document.getElementById('lasminai-math-text');
+    const mi = document.getElementById('lasminai-math-input');
+    if (mt) mt.remove();
+    if (mi) mi.remove();
+
     document.getElementById('lasminai-blocker-title').innerText = r.title;
     blockerOverlay.classList.add('visible');
+  } else if (message.type === 'HIDE_BLOCKER') {
+    if (activeReminderId === message.reminderId) {
+      blockerOverlay.classList.remove('visible');
+      activeReminderId = null;
+      // Reset UI
+      mathChallenge = null;
+      btnDismiss.style.display = 'block';
+      btnSnooze.style.display = 'block';
+      const mt = document.getElementById('lasminai-math-text');
+      const mi = document.getElementById('lasminai-math-input');
+      if (mt) mt.remove();
+      if (mi) mi.remove();
+    }
   }
 });
 
 // 5. Listen for Instant-Sync from Web App
 window.addEventListener('message', (event) => {
   if (event.data && event.data.type === 'LASMIN_REMINDER_DUE') {
-    chrome.runtime.sendMessage({ type: 'BROADCAST_BLOCKER', reminders: event.data.reminders });
+    safeSendMessage({ type: 'BROADCAST_BLOCKER', reminders: event.data.reminders });
   }
 });
 
-document.getElementById('lasminai-btn-dismiss').addEventListener('click', () => {
+const btnDismiss = document.getElementById('lasminai-btn-dismiss');
+const btnSnooze = document.getElementById('lasminai-btn-snooze');
+const actionsDiv = document.querySelector('.lasminai-blocker-actions');
+
+// When dismissing
+btnDismiss.addEventListener('click', () => {
   if (!activeReminderId) return;
-  chrome.runtime.sendMessage({
-    type: 'PROXY_FETCH',
-    url: `/api/reminders/${activeReminderId}/status`,
-    method: 'PUT',
-    body: { status: 'dismissed' }
-  }, () => {
-    blockerOverlay.classList.remove('visible');
-    activeReminderId = null;
-  });
+
+  if (!mathChallenge) {
+    mathChallenge = generateMathProblem();
+    
+    // Morph UI
+    btnDismiss.style.display = 'none';
+    btnSnooze.style.display = 'none';
+    
+    const mathText = document.createElement('div');
+    mathText.className = 'lasminai-blocker-btn';
+    mathText.style.backgroundColor = '#f3f4f6';
+    mathText.style.color = '#1f2937';
+    mathText.style.cursor = 'default';
+    mathText.innerText = mathChallenge.text;
+    mathText.id = 'lasminai-math-text';
+    
+    const mathInput = document.createElement('input');
+    mathInput.type = 'number';
+    mathInput.className = 'lasminai-blocker-btn';
+    mathInput.style.backgroundColor = 'white';
+    mathInput.style.color = 'black';
+    mathInput.style.border = '2px solid #ef4444';
+    mathInput.placeholder = 'Answer...';
+    mathInput.id = 'lasminai-math-input';
+    
+    mathInput.addEventListener('input', (e) => {
+      if (e.target.value.trim() === mathChallenge.answer.toString()) {
+        const idToDismiss = activeReminderId;
+        // Instantly hide and sync visually
+        safeSendMessage({ type: 'HIDE_BLOCKER', reminderId: idToDismiss });
+        blockerOverlay.classList.remove('visible');
+        activeReminderId = null;
+        mathChallenge = null;
+        
+        // Reset UI
+        btnDismiss.style.display = 'block';
+        btnSnooze.style.display = 'block';
+        mathText.remove();
+        mathInput.remove();
+
+        // Perform backend fetch via proxy
+        safeSendMessage({
+          type: 'PROXY_FETCH',
+          url: `/api/reminders/${idToDismiss}/status`,
+          method: 'PUT',
+          body: { status: 'dismissed' }
+        }, () => {});
+      }
+    });
+
+    actionsDiv.appendChild(mathText);
+    actionsDiv.appendChild(mathInput);
+    mathInput.focus();
+  }
 });
 
-document.getElementById('lasminai-btn-snooze').addEventListener('click', () => {
+btnSnooze.addEventListener('click', () => {
   if (!activeReminderId) return;
-  // Snooze for 10 mins
-  const snoozeTime = new Date();
-  snoozeTime.setMinutes(snoozeTime.getMinutes() + 10);
+  const idToSnooze = activeReminderId;
   
-  chrome.runtime.sendMessage({
+  // Snooze for 5 mins
+  const snoozeTime = new Date();
+  snoozeTime.setMinutes(snoozeTime.getMinutes() + 5);
+  
+  // Instantly hide and sync visually
+  safeSendMessage({ type: 'HIDE_BLOCKER', reminderId: idToSnooze });
+  blockerOverlay.classList.remove('visible');
+  activeReminderId = null;
+  
+  // Clean up if they hit snooze while math was open somehow (though button is hidden)
+  if (mathChallenge) {
+    mathChallenge = null;
+    btnDismiss.style.display = 'block';
+    btnSnooze.style.display = 'block';
+    const mt = document.getElementById('lasminai-math-text');
+    const mi = document.getElementById('lasminai-math-input');
+    if (mt) mt.remove();
+    if (mi) mi.remove();
+  }
+
+  // Perform backend fetch via proxy
+  safeSendMessage({
     type: 'PROXY_FETCH',
-    url: `/api/reminders/${activeReminderId}/snooze`,
+    url: `/api/reminders/${idToSnooze}/snooze`,
     method: 'PUT',
     body: { remindAt: snoozeTime.toISOString() }
-  }, () => {
-    blockerOverlay.classList.remove('visible');
-    activeReminderId = null;
-  });
+  }, () => {});
 });

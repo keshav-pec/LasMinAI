@@ -125,8 +125,8 @@ exports.snoozeReminder = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Only active reminders can be snoozed' });
     }
 
-    // Add 10 minutes (600,000 ms) to current remindAt time
-    const newTime = new Date(reminder.remindAt.getTime() + 10 * 60000);
+    // Add 5 minutes (300,000 ms) to current remindAt time
+    const newTime = new Date(reminder.remindAt.getTime() + 5 * 60000);
     reminder.remindAt = newTime;
     await reminder.save();
 

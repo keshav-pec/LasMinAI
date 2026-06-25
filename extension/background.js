@@ -34,7 +34,21 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     return true; // async
   }
 
-  // 2. Proxy Fetch Requests to bypass CORS for content scripts
+  // 2. Broadcast HIDE_BLOCKER across all tabs instantly
+  if (message.type === 'HIDE_BLOCKER') {
+    (async () => {
+      const tabs = await chrome.tabs.query({ url: "*://*/*" });
+      for (const tab of tabs) {
+        chrome.tabs.sendMessage(tab.id, {
+          type: 'HIDE_BLOCKER',
+          reminderId: message.reminderId
+        }).catch(() => {});
+      }
+    })();
+    return true; // async
+  }
+
+  // 3. Proxy Fetch Requests to bypass CORS for content scripts
   if (message.type === 'PROXY_FETCH') {
     (async () => {
       let cookie = await chrome.cookies.get({ url: FRONTEND_URL, name: 'auth_token' });

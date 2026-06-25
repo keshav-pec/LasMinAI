@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Mic, MicOff, Loader2, Volume2 } from 'lucide-react';
 import axios from 'axios';
 import toast from 'react-hot-toast';
+import { useLocation } from 'react-router-dom';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { broadcastReminderAction } from '../utils/reminderSync';
@@ -11,6 +12,9 @@ export default function GlobalVoiceAssistant({ isAuthenticated }) {
   const [isListening, setIsListening] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [transcript, setTranscript] = useState('');
+  const location = useLocation();
+  
+  const isPillMode = location.pathname === '/task-prompter' || location.pathname === '/work-station';
   
   // Computed property: Bubble is open if listening, processing, or showing a transcript
   const isOpen = isListening || isProcessing || transcript.length > 0;
@@ -25,6 +29,18 @@ export default function GlobalVoiceAssistant({ isAuthenticated }) {
   useEffect(() => {
     stateRef.current = { isProcessing };
   }, [isProcessing]);
+
+  // Sync state to UI pills
+  useEffect(() => {
+    window.dispatchEvent(new CustomEvent('sync_voice_listening', { detail: isListening }));
+  }, [isListening]);
+
+  // Listen for remote toggles from UI pills
+  useEffect(() => {
+    const handler = () => toggleListening();
+    window.addEventListener('toggle_global_voice', handler);
+    return () => window.removeEventListener('toggle_global_voice', handler);
+  }, [isListening]); // Re-bind so it has latest closure, or use a ref
 
   useEffect(() => {
     if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
@@ -187,7 +203,9 @@ export default function GlobalVoiceAssistant({ isAuthenticated }) {
 
 
 
-  if (!isAuthenticated) return null;
+  processCommandRef.current = processVoiceCommand;
+
+  if (!isAuthenticated || location.pathname === '/auth') return null;
 
   return (
     <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end gap-4">
@@ -234,22 +252,24 @@ export default function GlobalVoiceAssistant({ isAuthenticated }) {
         )}
       </AnimatePresence>
 
-      <motion.button
-        whileHover={{ scale: 1.05 }}
-        whileTap={{ scale: 0.95 }}
-        onClick={toggleListening}
-        className={`w-14 h-14 rounded-full flex items-center justify-center shadow-2xl transition-all border ${
-          isListening 
-            ? 'bg-blue-600 border-blue-400 text-white shadow-[0_0_20px_rgba(37,99,235,0.5)]' 
-            : 'bg-white dark:bg-neutral-800 border-neutral-200 dark:border-neutral-700 text-neutral-600 dark:text-neutral-300'
-        }`}
-      >
-        {isListening ? (
-          <Mic className="w-6 h-6 animate-pulse" />
-        ) : (
-          <MicOff className="w-6 h-6" />
-        )}
-      </motion.button>
+      {!isPillMode && (
+        <motion.button
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          onClick={toggleListening}
+          className={`w-14 h-14 rounded-full flex items-center justify-center shadow-2xl transition-all border ${
+            isListening 
+              ? 'bg-blue-600 border-blue-400 text-white shadow-[0_0_20px_rgba(37,99,235,0.5)]' 
+              : 'bg-white dark:bg-neutral-800 border-neutral-200 dark:border-neutral-700 text-neutral-600 dark:text-neutral-300'
+          }`}
+        >
+          {isListening ? (
+            <Mic className="w-6 h-6 animate-pulse" />
+          ) : (
+            <MicOff className="w-6 h-6" />
+          )}
+        </motion.button>
+      )}
     </div>
   );
 }

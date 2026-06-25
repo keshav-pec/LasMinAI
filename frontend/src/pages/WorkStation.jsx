@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Send, Mic, Zap, ChevronLeft, ChevronRight, CheckCircle2, Clock, BrainCircuit, Check } from 'lucide-react';
+import { Send, Mic, Zap, ChevronLeft, ChevronRight, CheckCircle2, Clock, BrainCircuit, Check, Bell, MicOff } from 'lucide-react';
 import axios from 'axios';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -25,6 +25,21 @@ export default function WorkStation({ userData }) {
 
   const { tasks, fetchTasks, handleToggleComplete } = useTasks(true);
 
+  const [remindersCount, setRemindersCount] = useState(0);
+  const [isGlobalVoiceListening, setIsGlobalVoiceListening] = useState(false);
+
+  useEffect(() => {
+    const rHandler = (e) => setRemindersCount(e.detail);
+    const vHandler = (e) => setIsGlobalVoiceListening(e.detail);
+    window.addEventListener('sync_reminders_count', rHandler);
+    window.addEventListener('sync_voice_listening', vHandler);
+    
+    return () => {
+      window.removeEventListener('sync_reminders_count', rHandler);
+      window.removeEventListener('sync_voice_listening', vHandler);
+    }
+  }, []);
+
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
@@ -35,39 +50,10 @@ export default function WorkStation({ userData }) {
 
   const handleInput = (e) => {
     setInputValue(e.target.value);
-    if (textareaRef.current) {
-      textareaRef.current.style.height = 'auto';
-      textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 200)}px`;
+    if (inputRef.current) {
+      inputRef.current.style.height = 'auto';
+      inputRef.current.style.height = `${Math.min(inputRef.current.scrollHeight, 200)}px`;
     }
-  };
-
-  const toggleListening = () => {
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SpeechRecognition) {
-      toast.error("Voice input is not supported in this browser.");
-      return;
-    }
-    const recognition = new SpeechRecognition();
-    recognition.continuous = false;
-    recognition.interimResults = false;
-    recognition.lang = 'en-US';
-
-    recognition.onstart = () => setIsListening(true);
-    recognition.onresult = (event) => {
-      const transcript = event.results[0][0].transcript;
-      setInputValue((prev) => prev + (prev ? ' ' : '') + transcript);
-      setTimeout(() => {
-        if (textareaRef.current) {
-          textareaRef.current.style.height = 'auto';
-          textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 200)}px`;
-        }
-      }, 100);
-    };
-    recognition.onerror = () => setIsListening(false);
-    recognition.onend = () => setIsListening(false);
-
-    if (isListening) recognition.stop();
-    else recognition.start();
   };
 
   const handleSend = async (e) => {
@@ -189,10 +175,23 @@ export default function WorkStation({ userData }) {
             <form onSubmit={handleSend} className="relative flex items-end gap-2 bg-neutral-100 dark:bg-[#1E1F20] rounded-3xl p-1.5 border border-neutral-200 dark:border-neutral-800 shadow-sm focus-within:ring-2 focus-within:ring-blue-500/20 focus-within:border-blue-500/50 transition-all">
               <button 
                 type="button" 
-                onClick={toggleListening}
-                className={`p-3 rounded-full transition-colors shrink-0 cursor-pointer ${isListening ? 'text-red-500 bg-red-500/10 animate-pulse' : 'text-neutral-500 hover:text-blue-500 hover:bg-neutral-200 dark:hover:bg-[#333537]'}`}
+                onClick={() => window.dispatchEvent(new CustomEvent('toggle_reminders_widget'))}
+                className="p-3 rounded-full transition-colors shrink-0 mb-0.5 ml-0.5 relative cursor-pointer text-neutral-500 hover:text-blue-500 hover:bg-neutral-200 dark:hover:bg-[#333537]"
+                title="Reminders AI"
               >
-                <Mic className="w-5 h-5" />
+                <Bell className="w-5 h-5" />
+                {remindersCount > 0 && (
+                  <span className="absolute top-1 right-1.5 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-neutral-100 dark:border-[#1E1F20]"></span>
+                )}
+              </button>
+
+              <button 
+                type="button" 
+                onClick={() => window.dispatchEvent(new CustomEvent('toggle_global_voice'))}
+                className={`p-3 rounded-full transition-colors shrink-0 cursor-pointer mb-0.5 ${isGlobalVoiceListening ? 'text-white bg-blue-600 animate-pulse shadow-[0_0_15px_rgba(37,99,235,0.5)]' : 'text-neutral-500 hover:text-blue-500 hover:bg-neutral-200 dark:hover:bg-[#333537]'}`}
+                title="Global Voice Assistant"
+              >
+                {isGlobalVoiceListening ? <Mic className="w-5 h-5" /> : <MicOff className="w-5 h-5" />}
               </button>
               <textarea
                 ref={inputRef}
@@ -216,7 +215,7 @@ export default function WorkStation({ userData }) {
               <button 
                 type="submit"
                 disabled={!inputValue.trim()}
-                className="p-3 bg-blue-600 text-white rounded-full hover:bg-blue-700 disabled:bg-neutral-300 dark:disabled:bg-[#333537] disabled:text-neutral-500 transition-colors shrink-0 mb-0.5 mr-0.5 cursor-pointer"
+                className="p-3 bg-blue-600 text-white rounded-full hover:bg-blue-700 disabled:bg-neutral-300 dark:disabled:bg-[#333537] disabled:text-neutral-500 transition-colors shrink-0 mb-0.5 cursor-pointer"
               >
                 <Send className="w-5 h-5 ml-0.5" />
               </button>

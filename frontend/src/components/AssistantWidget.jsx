@@ -14,6 +14,9 @@ export default function AssistantWidget({ user }) {
   const [showRemindersList, setShowRemindersList] = useState(false);
   const [triggeredReminder, setTriggeredReminder] = useState(null); // For the central dialog
   
+  const [mathChallenge, setMathChallenge] = useState(null);
+  const [mathAnswer, setMathAnswer] = useState("");
+  
   const [input, setInput] = useState('');
   const [isListening, setIsListening] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -21,10 +24,37 @@ export default function AssistantWidget({ user }) {
     { role: 'ai', content: "I'm your Reminders AI. What do you need me to remember?" }
   ]);
 
+  const generateMathProblem = () => {
+    const types = ['add', 'sub', 'square'];
+    const type = types[Math.floor(Math.random() * types.length)];
+    if (type === 'add') {
+      const a = Math.floor(Math.random() * 90) + 10;
+      const b = Math.floor(Math.random() * 90) + 10;
+      return { text: `${a} + ${b} = ?`, answer: a + b };
+    } else if (type === 'sub') {
+      const a = Math.floor(Math.random() * 90) + 10;
+      const b = Math.floor(Math.random() * 90) + 10;
+      const max = Math.max(a, b);
+      const min = Math.min(a, b);
+      return { text: `${max} - ${min} = ?`, answer: max - min };
+    } else {
+      const a = Math.floor(Math.random() * 21) + 5;
+      return { text: `${a}² = ?`, answer: a * a };
+    }
+  };
+
   const messagesEndRef = useRef(null);
   const audioCtxRef = useRef(null);
   const notifiedIdsRef = useRef(new Set());
   const location = useLocation();
+  const isPillMode = location.pathname === '/task-prompter' || location.pathname === '/work-station';
+
+  // Listen for remote toggle from UI pills
+  useEffect(() => {
+    const handler = () => setIsOpen(p => !p);
+    window.addEventListener('toggle_reminders_widget', handler);
+    return () => window.removeEventListener('toggle_reminders_widget', handler);
+  }, []);
 
   // Init audio context on first user interaction to bypass autoplay policy
   useEffect(() => {
@@ -42,6 +72,11 @@ export default function AssistantWidget({ user }) {
   }, []);
 
 
+
+  // Broadcast reminders count for pill UIs
+  useEffect(() => {
+    window.dispatchEvent(new CustomEvent('sync_reminders_count', { detail: reminders.length }));
+  }, [reminders.length]);
 
   // Fetch Reminders
   const fetchReminders = async () => {
@@ -88,6 +123,22 @@ export default function AssistantWidget({ user }) {
       messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
     }
   }, [history, showRemindersList]);
+
+  // Auto-submit math challenge
+  useEffect(() => {
+    if (mathChallenge && mathAnswer.trim() === mathChallenge.answer.toString() && triggeredReminder) {
+      handleDismissReminder(triggeredReminder._id);
+      setMathChallenge(null);
+      setMathAnswer("");
+    }
+  }, [mathAnswer, mathChallenge, triggeredReminder]);
+
+  const onInitiateDismiss = () => {
+    if (!mathChallenge) {
+      setMathChallenge(generateMathProblem());
+      setMathAnswer("");
+    }
+  };
 
   // Handle Notifications Loop
   useEffect(() => {
@@ -148,6 +199,10 @@ export default function AssistantWidget({ user }) {
   const triggerNotification = async (reminder) => {
     // Play audio buzz
     playBuzzSound();
+    
+    // reset any previous math challenge
+    setMathChallenge(null);
+    setMathAnswer("");
     
     // Show central dialog
     setTriggeredReminder(reminder);
@@ -281,11 +336,7 @@ export default function AssistantWidget({ user }) {
   }
 
   return (
-    <div className={`fixed bottom-6 left-6 z-[9999] flex flex-col items-start ${
-      (location.pathname === '/task-prompter' || location.pathname === '/work-station') 
-        ? 'max-md:hidden' 
-        : ''
-    }`}>
+    <div className="fixed bottom-6 left-6 z-[9999] flex flex-col items-start">
       <AnimatePresence>
         {isOpen && (
           <motion.div
@@ -427,7 +478,7 @@ export default function AssistantWidget({ user }) {
       </AnimatePresence>
 
       {/* Floating Action Button */}
-      {!isOpen && (
+      {!isOpen && !isPillMode && (
         <motion.button
           initial={{ scale: 0 }}
           animate={{ scale: 1 }}
@@ -464,19 +515,37 @@ export default function AssistantWidget({ user }) {
               <p className="relative z-10 text-neutral-600 dark:text-neutral-300 mb-8 text-lg font-medium">{triggeredReminder.title}</p>
               
               <div className="relative z-10 flex w-full flex-col sm:flex-row gap-3">
-                <button
-                  onClick={() => handleDismissReminder(triggeredReminder._id)}
-                  className="flex-1 py-3.5 bg-neutral-100 dark:bg-neutral-800 hover:bg-neutral-200 dark:hover:bg-neutral-700 text-neutral-800 dark:text-neutral-200 font-semibold rounded-2xl transition-all active:scale-95 border border-transparent dark:border-neutral-700"
-                >
-                  Dismiss
-                </button>
-                {triggeredReminder.snoozable && (
-                  <button
-                    onClick={() => handleSnoozeReminder(triggeredReminder._id)}
-                    className="flex-1 py-3.5 bg-gradient-to-r from-red-500 to-orange-500 hover:from-red-600 hover:to-orange-600 text-white font-semibold rounded-2xl shadow-md transition-all active:scale-95"
-                  >
-                    Snooze
-                  </button>
+                {!mathChallenge ? (
+                  <>
+                    <button
+                      onClick={onInitiateDismiss}
+                      className="flex-1 py-3.5 bg-neutral-100 dark:bg-neutral-800 hover:bg-neutral-200 dark:hover:bg-neutral-700 text-neutral-800 dark:text-neutral-200 font-semibold rounded-2xl transition-all active:scale-95 border border-transparent dark:border-neutral-700"
+                    >
+                      Dismiss
+                    </button>
+                    {triggeredReminder.snoozable && (
+                      <button
+                        onClick={() => handleSnoozeReminder(triggeredReminder._id)}
+                        className="flex-1 py-3.5 bg-gradient-to-r from-red-500 to-orange-500 hover:from-red-600 hover:to-orange-600 text-white font-semibold rounded-2xl shadow-md transition-all active:scale-95"
+                      >
+                        Snooze
+                      </button>
+                    )}
+                  </>
+                ) : (
+                  <>
+                    <div className="flex-1 py-3.5 flex items-center justify-center bg-neutral-100 dark:bg-neutral-800 text-neutral-800 dark:text-neutral-200 font-bold rounded-2xl border border-transparent dark:border-neutral-700">
+                      {mathChallenge.text}
+                    </div>
+                    <input
+                      type="number"
+                      autoFocus
+                      placeholder="Answer..."
+                      value={mathAnswer}
+                      onChange={(e) => setMathAnswer(e.target.value)}
+                      className="flex-1 w-full py-3.5 px-4 bg-white dark:bg-neutral-900 border-2 border-red-500 focus:border-red-600 outline-none text-center text-neutral-900 dark:text-white font-semibold rounded-2xl transition-all"
+                    />
+                  </>
                 )}
               </div>
             </motion.div>
