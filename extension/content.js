@@ -211,7 +211,7 @@ blockerOverlay.innerHTML = `
     
     <div class="lasminai-blocker-actions">
       <button class="lasminai-blocker-btn lasminai-btn-dismiss" id="lasminai-btn-dismiss">Dismiss</button>
-      <button class="lasminai-blocker-btn lasminai-btn-snooze" id="lasminai-btn-snooze">Snooze (10m)</button>
+      <button class="lasminai-blocker-btn lasminai-btn-snooze" id="lasminai-btn-snooze">Snooze</button>
     </div>
   </div>
 `;

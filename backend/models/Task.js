@@ -39,6 +39,10 @@ const TaskSchema = new mongoose.Schema({
   priorityScore: {
     type: Number,
     default: 0,
+  },
+  digestSent: {
+    type: Boolean,
+    default: false,
   }
 }, { timestamps: true });
 

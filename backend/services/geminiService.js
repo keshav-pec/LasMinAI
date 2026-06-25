@@ -140,6 +140,7 @@ const intentSchema = {
       description: "Populate ONLY for CREATE actions.",
       properties: {
         title: { type: Type.STRING, description: "A concise title for the task. Do NOT include dates here." },
+        description: { type: Type.STRING, description: "Detailed helpful context, instructions, or elaboration provided by the user. If they provide none, leave this empty." },
         deadline: { type: Type.STRING, description: "ISO 8601 exact date string. NEVER OMIT THIS FIELD. Calculate relative times (e.g. 'today' -> 11:59 PM today)." },
         complexity: { type: Type.NUMBER, description: "Scale of 1-10 based on user's feeling (1=very easy, 2=easy, 5=normal, 7-8=hard, 10=complex). You MUST intelligently extract this." },
         technicalEffort: { type: Type.NUMBER, description: "Estimated hours to complete. Default to 2 if not specified." }
@@ -152,6 +153,7 @@ const intentSchema = {
       properties: {
         taskIdToUpdate: { type: Type.STRING, description: "The exact _id of the task from the Live Database Context." },
         title: { type: Type.STRING },
+        description: { type: Type.STRING },
         deadline: { type: Type.STRING },
         complexity: { type: Type.NUMBER, description: "Scale of 1-10 based on user's feeling (1=very easy, 2=easy, 5=normal, 7-8=hard, 10=complex)." },
         technicalEffort: { type: Type.NUMBER },
@@ -181,8 +183,8 @@ const parseUserMessage = async (userMessage, history = [], currentTasks = [], us
       Instructions:
       1. Analyze the user's latest message alongside the conversation history and Live Database Context.
       2. If the user asks what tasks they have, set action to 'READ' and list the tasks from the Live Context in your conversationalReply.
-      3. If the user is logging a NEW task, set action to 'CREATE'. You MUST extract a concise 'title' (with no dates/times in it) AND you MUST calculate the exact ISO timestamp for the 'deadline'. Both 'title' and 'deadline' MUST be explicitly populated in the 'extractedTaskCreate' object. If the user provides a date without a specific time (e.g. "due today"), default the time to 11:59 PM of that day.
-      4. If the user wants to MODIFY an existing task, set action to 'UPDATE'. You MUST use semantic fuzzy matching to map the task to the Live Context and extract its exact '_id' as 'taskIdToUpdate' inside the 'extractedTaskUpdate' object. You MUST ALSO extract and provide the new values for the properties being updated.
+      3. If the user is logging a NEW task, set action to 'CREATE'. You MUST extract a concise 'title' (with no dates/times in it) AND you MUST calculate the exact ISO timestamp for the 'deadline'. If the user provides extra elaboration or helpful context about the task, populate the 'description' field. If they provide no context, leave it empty.
+      4. If the user wants to MODIFY an existing task, set action to 'UPDATE'. You MUST use semantic fuzzy matching to map the task to the Live Context and extract its exact '_id'.
       5. If you have confused with two or more tasks, then ask the user exactly which task he/she wants to modify or ask about.
       6. CRITICAL: In your 'conversationalReply', you MUST convert all task deadlines from UTC to the 'User Timezone' before displaying them to the user. Never show raw UTC times to the user.
       7. CRITICAL TIME FORMATTING: The user's exact current UTC offset is '${timezoneOffset}'. You MUST explicitly append '${timezoneOffset}' to the end of your ISO string (e.g. YYYY-MM-DDTHH:mm:00${timezoneOffset}). Do NOT append 'Z' and do NOT attempt to calculate UTC mathematically yourself.
@@ -426,10 +428,72 @@ const parseOrchestratorIntent = async (userMessage) => {
   }
 };
 
+/**
+ * Helper to pause execution
+ */
+const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
+/**
+ * Generates an HTML Email Digest using Google Search Grounding for context.
+ * Implements Exponential Backoff and Graceful Fallback to non-grounding if quota is exhausted.
+ */
+const generateTaskDigestMaterial = async (tasks, retries = 3, backoffDelay = 2000) => {
+  try {
+    const systemPrompt = `
+      You are LasMinAI's helpful Task Preparation Assistant. 
+      The user is about to start the following tasks in the next 2 hours.
+      Your job is to generate a beautifully formatted HTML email digest containing helpful links, tutorials, and quick-start prep material for these specific tasks.
+      
+      Tasks:
+      ${JSON.stringify(tasks.map(t => ({ title: t.title, description: t.description })), null, 2)}
+
+      Instructions:
+      1. If the user provided a 'description' for a task, use it as your guiding light.
+      2. DO NOT invent, guess, or hallucinate any URLs or links to tutorials/videos (they will be dead links).
+      3. Instead, for each task, generate a "Magic AI Prompt". This should be a highly optimized, detailed prompt that the user can copy/paste into Gemini to get the best possible help, starting code, or tutorial.
+      4. As an added bonus, encode that exact prompt into a clickable Perplexity or ChatGPT URL (e.g., <a href="https://www.perplexity.ai/search?q=YOUR+URL+ENCODED+PROMPT">Ask AI instantly</a>).
+      5. The output MUST be raw HTML (no markdown code blocks, just raw HTML). 
+      6. Use inline CSS. Make it look modern, clean, and inspiring (e.g., sans-serif fonts, soft colors, distinct sections for each task).
+      7. Include a brief encouraging message at the top.
+    `;
+
+    const config = {
+      systemInstruction: systemPrompt,
+      temperature: 0.4
+    };
+
+    const response = await ai.models.generateContent({
+      model: 'gemini-3.1-flash-lite',
+      contents: [{ role: 'user', parts: [{ text: "Generate my pre-flight task prep email in HTML." }] }],
+      config: config
+    });
+
+    const cleanHtml = response.text.replace(/```html/gi, '').replace(/```/g, '').trim();
+    return cleanHtml;
+    
+  } catch (error) {
+    const errorString = error.message || error.toString();
+    console.error(`⚠️ Gemini Generation Error: ${errorString}`);
+
+    // If Rate Limit (429) or Quota Exhausted, use exponential backoff
+    if (errorString.includes('429') || errorString.includes('RESOURCE_EXHAUSTED')) {
+      if (retries > 0) {
+        console.log(`⏳ Rate Limit Hit. Backing off for ${backoffDelay}ms... (${retries} retries left)`);
+        await sleep(backoffDelay);
+        return await generateTaskDigestMaterial(tasks, retries - 1, backoffDelay * 2);
+      }
+    }
+
+    console.error(`❌ Fatal Generation Error: ${errorString}`);
+    return "<p>Unable to load dynamic prep material at this time, but you've got this! Start your tasks soon.</p>";
+  }
+};
+
 module.exports = {
   parseUserMessage,
   parseWorkstationMessage,
   parseReminderMessage,
   parseGeneralMessage,
-  parseOrchestratorIntent
+  parseOrchestratorIntent,
+  generateTaskDigestMaterial
 };

@@ -10,6 +10,7 @@ const taskRoutes = require('./routes/taskRoutes');
 const workstationRoutes = require('./routes/workstationRoutes');
 const reminderRoutes = require('./routes/reminderRoutes');
 const voiceRoutes = require('./routes/voiceRoutes');
+const { startEmailWorker } = require('./services/emailWorker');
 
 const app = express();
 
@@ -63,4 +64,7 @@ app.get('/api/health', (req, res) => {
 const PORT = process.env.PORT || 5050;
 app.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
+  
+  // Start the background email sweep worker
+  startEmailWorker();
 });

@@ -32,7 +32,7 @@ exports.handleChatMessage = async (req, res) => {
     // ACTION ROUTING
     // ==========================================
     if (aiAnalysis.action === 'CREATE' && aiAnalysis.extractedTaskCreate) {
-      const { title, complexity, technicalEffort } = aiAnalysis.extractedTaskCreate;
+      const { title, description, complexity, technicalEffort } = aiAnalysis.extractedTaskCreate;
       let { deadline } = aiAnalysis.extractedTaskCreate;
 
       // Fallback: If Gemini hallucinates or fails to extract the deadline, default to 24 hours from now
@@ -47,6 +47,7 @@ exports.handleChatMessage = async (req, res) => {
         const newTask = new Task({
           userId: req.user.id,
           title,
+          description: description || "",
           deadline,
           complexity: complexity || 5,
           technicalEffort: technicalEffort || 2,
@@ -64,6 +65,7 @@ exports.handleChatMessage = async (req, res) => {
       if (taskToUpdate) {
         // Apply the extracted updates dynamically
         if (aiAnalysis.extractedTaskUpdate.title) taskToUpdate.title = aiAnalysis.extractedTaskUpdate.title;
+        if (aiAnalysis.extractedTaskUpdate.description !== undefined) taskToUpdate.description = aiAnalysis.extractedTaskUpdate.description;
         if (aiAnalysis.extractedTaskUpdate.complexity) taskToUpdate.complexity = aiAnalysis.extractedTaskUpdate.complexity;
         if (aiAnalysis.extractedTaskUpdate.technicalEffort) taskToUpdate.technicalEffort = aiAnalysis.extractedTaskUpdate.technicalEffort;
         if (aiAnalysis.extractedTaskUpdate.deadline) taskToUpdate.deadline = aiAnalysis.extractedTaskUpdate.deadline;

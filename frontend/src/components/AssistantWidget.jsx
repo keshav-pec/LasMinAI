@@ -475,7 +475,7 @@ export default function AssistantWidget({ user }) {
                     onClick={() => handleSnoozeReminder(triggeredReminder._id)}
                     className="flex-1 py-3.5 bg-gradient-to-r from-red-500 to-orange-500 hover:from-red-600 hover:to-orange-600 text-white font-semibold rounded-2xl shadow-md transition-all active:scale-95"
                   >
-                    Snooze (10m)
+                    Snooze
                   </button>
                 )}
               </div>
