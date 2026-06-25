@@ -86,6 +86,9 @@ export default function GlobalVoiceAssistant({ isAuthenticated }) {
   const processVoiceCommand = async (commandText) => {
     if (!commandText.trim()) return;
     
+    // Prevent double-firing if the browser sends multiple isFinal segments before the mic shuts off
+    if (stateRef.current.isProcessing) return;
+
     // Synchronously update the ref so the onend handler doesn't restart it!
     stateRef.current.isProcessing = true;
     setIsProcessing(true);
