@@ -63,6 +63,7 @@ exports.handleChatMessage = async (req, res) => {
 
       if (taskToUpdate) {
         // Apply the extracted updates dynamically
+        if (aiAnalysis.extractedTaskUpdate.title) taskToUpdate.title = aiAnalysis.extractedTaskUpdate.title;
         if (aiAnalysis.extractedTaskUpdate.complexity) taskToUpdate.complexity = aiAnalysis.extractedTaskUpdate.complexity;
         if (aiAnalysis.extractedTaskUpdate.technicalEffort) taskToUpdate.technicalEffort = aiAnalysis.extractedTaskUpdate.technicalEffort;
         if (aiAnalysis.extractedTaskUpdate.deadline) taskToUpdate.deadline = aiAnalysis.extractedTaskUpdate.deadline;

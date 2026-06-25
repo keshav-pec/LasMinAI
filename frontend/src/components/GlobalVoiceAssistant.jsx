@@ -199,10 +199,11 @@ export default function GlobalVoiceAssistant({ isAuthenticated }) {
                     p: ({node, ...props}) => <p className="mb-2 last:mb-0" {...props} />,
                     ul: ({node, ...props}) => <ul className="list-disc pl-4 mb-2 space-y-1" {...props} />,
                     li: ({node, ...props}) => <li {...props} />,
-                    strong: ({node, ...props}) => <strong className="font-bold text-blue-600 dark:text-blue-400" {...props} />,
+                    strong: ({node, ...props}) => <strong className="font-bold text-blue-400 dark:text-blue-600" {...props} />,
+                    pre: ({node, ...props}) => <pre className="bg-neutral-800 dark:bg-neutral-100 text-neutral-200 dark:text-neutral-800 p-2 rounded-lg my-2 overflow-x-auto text-xs font-mono" {...props} />,
                     code: ({node, inline, ...props}) => inline 
-                      ? <code className="bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 px-1 py-0.5 rounded text-xs" {...props} />
-                      : <code className="block bg-neutral-100 dark:bg-neutral-800 p-2 rounded text-xs" {...props} />
+                      ? <code className="bg-neutral-800 dark:bg-blue-50 text-blue-300 dark:text-blue-600 px-1.5 py-0.5 rounded-md text-xs font-semibold" {...props} />
+                      : <code className="font-mono" {...props} />
                   }}
                 >
                   {transcript}
