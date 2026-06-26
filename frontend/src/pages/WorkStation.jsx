@@ -173,25 +173,15 @@ export default function WorkStation({ userData }) {
         <div className="p-4 sm:p-6 bg-gradient-to-t from-white via-white to-transparent dark:from-[#131314] dark:via-[#131314] dark:to-transparent z-20">
           <div className="max-w-3xl mx-auto relative">
             <form onSubmit={handleSend} className="relative flex items-end gap-2 bg-neutral-100 dark:bg-[#1E1F20] rounded-3xl p-1.5 border border-neutral-200 dark:border-neutral-800 shadow-sm focus-within:ring-2 focus-within:ring-blue-500/20 focus-within:border-blue-500/50 transition-all">
-              <button 
-                type="button" 
-                onClick={() => window.dispatchEvent(new CustomEvent('toggle_reminders_widget'))}
-                className="p-3 rounded-full transition-colors shrink-0 mb-0.5 ml-0.5 relative cursor-pointer text-neutral-500 hover:text-blue-500 hover:bg-neutral-200 dark:hover:bg-[#333537]"
-                title="Reminders AI"
-              >
-                <Bell className="w-5 h-5" />
-                {remindersCount > 0 && (
-                  <span className="absolute top-1 right-1.5 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-neutral-100 dark:border-[#1E1F20]"></span>
-                )}
-              </button>
+
 
               <button 
                 type="button" 
-                onClick={() => window.dispatchEvent(new CustomEvent('toggle_global_voice'))}
-                className={`p-3 rounded-full transition-colors shrink-0 cursor-pointer mb-0.5 ${isGlobalVoiceListening ? 'text-white bg-blue-600 animate-pulse shadow-[0_0_15px_rgba(37,99,235,0.5)]' : 'text-neutral-500 hover:text-blue-500 hover:bg-neutral-200 dark:hover:bg-[#333537]'}`}
+                onClick={() => window.dispatchEvent(new CustomEvent('toggle_global_voice', { detail: { source: 'input_mic' } }))}
+                className={`p-3 rounded-full shrink-0 cursor-pointer mb-0.5 ${isGlobalVoiceListening ? 'bg-red-500 border border-red-400 text-white shadow-[0_0_20px_rgba(239,68,68,0.6)] animate-pulse transition-all duration-200' : 'bg-blue-600/40 backdrop-blur-md border border-blue-400/30 text-white shadow-lg shadow-blue-600/20 hover:scale-105 transition-all duration-200'}`}
                 title="Global Voice Assistant"
               >
-                {isGlobalVoiceListening ? <Mic className="w-5 h-5" /> : <MicOff className="w-5 h-5" />}
+                <Mic className={`w-5 h-5 ${isGlobalVoiceListening ? 'animate-pulse' : ''}`} />
               </button>
               <textarea
                 ref={inputRef}

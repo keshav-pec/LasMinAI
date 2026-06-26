@@ -87,21 +87,26 @@ export default function GlobalVoiceAssistant({ isAuthenticated }) {
     };
   }, []); // Empty dependency array so it only mounts once!
 
-  const toggleListening = () => {
+  const [triggerSource, setTriggerSource] = useState('floating_mic');
+
+  const toggleListening = (source = 'floating_mic') => {
     if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
+    
+    setTriggerSource(source);
     
     if (isListening) {
       recognitionRef.current?.stop();
       setIsListening(false);
       setTranscript('');
-      toast.success("Voice Assistant paused.", { icon: '⏸️' });
+      if (window.innerWidth >= 1024) {
+        toast.success("Voice Assistant paused.", { icon: '⏸️', id: 'voice-toast' });
+      }
     } else {
       try {
         recognitionRef.current?.start();
       } catch(e) {}
       setIsListening(true);
       setTranscript(''); // Clear old transcripts when waking up
-      toast.success("Voice Assistant Activated. I'm listening!", { icon: '🎙️' });
     }
   };
 
@@ -205,15 +210,29 @@ export default function GlobalVoiceAssistant({ isAuthenticated }) {
     return null;
   }
 
+  useEffect(() => {
+    const handleToggleEvent = (e) => toggleListening(e.detail?.source || 'floating_mic');
+    window.addEventListener('toggle_global_voice', handleToggleEvent);
+    return () => window.removeEventListener('toggle_global_voice', handleToggleEvent);
+  }, [isListening]);
+
+  if (!isAuthenticated || location.pathname === '/auth' || location.pathname === '/settings') {
+    return null;
+  }
+
   return (
-    <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end gap-4">
+    <>
       <AnimatePresence>
         {isOpen && (
           <motion.div 
             initial={{ opacity: 0, y: 20, scale: 0.9 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 20, scale: 0.9 }}
-            className="bg-neutral-900 dark:bg-white text-white dark:text-neutral-900 p-4 rounded-2xl shadow-2xl w-auto max-w-sm md:max-w-md backdrop-blur-xl border border-white/10"
+            className={`fixed z-[10000] pointer-events-auto bg-neutral-900 dark:bg-white text-white dark:text-neutral-900 p-4 rounded-2xl shadow-2xl w-[90vw] max-w-sm md:max-w-md backdrop-blur-xl border border-white/10 ${
+              triggerSource === 'input_mic' 
+                ? 'bottom-[90px] left-4 sm:left-1/2 sm:-translate-x-[360px] origin-bottom-left' 
+                : 'bottom-[84px] right-6 origin-bottom-right'
+            }`}
           >
             <div className="flex items-center gap-2 mb-2">
               {isProcessing ? (
@@ -254,20 +273,16 @@ export default function GlobalVoiceAssistant({ isAuthenticated }) {
         <motion.button
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
-          onClick={toggleListening}
-          className={`w-14 h-14 rounded-full flex items-center justify-center shadow-2xl transition-all border ${
-            isListening 
-              ? 'bg-blue-600 border-blue-400 text-white shadow-[0_0_20px_rgba(37,99,235,0.5)]' 
-              : 'bg-white dark:bg-neutral-800 border-neutral-200 dark:border-neutral-700 text-neutral-600 dark:text-neutral-300'
-          }`}
+          onClick={() => toggleListening('floating_mic')}
+          className={`fixed bottom-6 right-6 pointer-events-auto w-11 h-11 rounded-full flex items-center justify-center z-[9999] cursor-pointer ${
+          isListening 
+            ? 'bg-red-500 border border-red-400 text-white shadow-[0_0_20px_rgba(239,68,68,0.6)] animate-pulse transition-all duration-200' 
+            : 'bg-blue-600/40 backdrop-blur-md border border-blue-400/30 text-white shadow-lg shadow-blue-600/20 transition-all duration-200'
+        }`}
         >
-          {isListening ? (
-            <Mic className="w-6 h-6 animate-pulse" />
-          ) : (
-            <MicOff className="w-6 h-6" />
-          )}
+          <Mic className={`w-6 h-6 ${isListening ? 'animate-pulse' : ''}`} />
         </motion.button>
       )}
-    </div>
+    </>
   );
 }

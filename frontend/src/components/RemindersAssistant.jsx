@@ -8,7 +8,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { subscribeToReminderActions, broadcastReminderAction } from '../utils/reminderSync';
 
-export default function AssistantWidget({ user }) {
+export default function RemindersAssistant({ user }) {
   const [isOpen, setIsOpen] = useState(false);
   const [reminders, setReminders] = useState([]);
   const [showRemindersList, setShowRemindersList] = useState(false);
@@ -336,84 +336,26 @@ export default function AssistantWidget({ user }) {
   }
 
   return (
-    <div className="fixed bottom-6 left-6 z-[9999] flex flex-col items-start">
+    <div className="fixed inset-0 z-[9999] flex flex-col items-center justify-center pointer-events-none">
       <AnimatePresence>
         {isOpen && (
-          <motion.div
-            initial={{ opacity: 0, y: 20, scale: 0.9 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 20, scale: 0.9 }}
-            transition={{ type: "spring", stiffness: 300, damping: 25 }}
-            className="mb-4 w-80 sm:w-96 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-3xl shadow-2xl overflow-hidden flex flex-col"
-            style={{ maxHeight: '600px', height: 'calc(100vh - 120px)' }}
-          >
-            {/* Header */}
-            <div className="p-3 bg-blue-500 text-white flex justify-between items-center rounded-t-3xl">
-              <div className="flex items-center space-x-2">
-                <Bell className="w-5 h-5" />
-                <h3 className="font-bold">Reminders</h3>
-              </div>
-              <button onClick={() => setIsOpen(false)} className="hover:bg-blue-600 p-1 rounded-full transition-colors">
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            {/* Active Reminders Dropdown */}
-            <div className="border-b border-neutral-200 dark:border-neutral-800">
-              <button 
-                onClick={() => setShowRemindersList(!showRemindersList)}
-                className="w-full p-3 flex justify-between items-center text-sm font-medium text-neutral-600 dark:text-neutral-400 hover:bg-neutral-50 dark:hover:bg-neutral-800/50 transition-colors"
-              >
-                <div className="flex items-center space-x-2">
-                  <Clock className="w-4 h-4 text-blue-500" />
-                  <span>Active Reminders ({reminders.length})</span>
-                </div>
-                {showRemindersList ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-              </button>
-              
-              <AnimatePresence>
-                {showRemindersList && (
-                  <motion.div
-                    initial={{ height: 0, opacity: 0 }}
-                    animate={{ height: 'auto', opacity: 1 }}
-                    exit={{ height: 0, opacity: 0 }}
-                    className="overflow-hidden bg-neutral-50 dark:bg-neutral-900/50"
-                  >
-                    <div className="max-h-40 overflow-y-auto p-2 space-y-2">
-                      {reminders.length === 0 ? (
-                        <p className="text-xs text-center text-neutral-500 py-2">No active reminders.</p>
-                      ) : (
-                        reminders.map(r => (
-                          <div key={r._id} className="flex justify-between items-center bg-white dark:bg-neutral-800 p-2 rounded-lg border border-neutral-200 dark:border-neutral-700">
-                            <div className="flex flex-col">
-                              <span className="text-sm font-semibold text-neutral-800 dark:text-neutral-200">{r.title}</span>
-                              <span className="text-xs text-blue-500 font-medium mt-0.5">
-                                {new Date(r.remindAt).toLocaleString(undefined, { 
-                                  weekday: 'short', 
-                                  month: 'short', 
-                                  day: 'numeric', 
-                                  hour: 'numeric', 
-                                  minute: '2-digit' 
-                                })}
-                              </span>
-                            </div>
-                            <button 
-                              onClick={() => handleDismissReminder(r._id)}
-                              className="p-1.5 hover:bg-neutral-200 dark:hover:bg-neutral-700 rounded-md text-neutral-500 dark:text-neutral-400"
-                              title="Dismiss"
-                            >
-                              <Check className="w-3.5 h-3.5" />
-                            </button>
-                          </div>
-                        ))
-                      )}
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
-
-            {/* Chat History */}
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsOpen(false)}
+              className="absolute inset-0 bg-black/40 backdrop-blur-sm pointer-events-auto"
+            />
+            <motion.div
+              initial={{ opacity: 0, y: 20, scale: 0.9 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 20, scale: 0.9 }}
+              transition={{ type: "spring", stiffness: 300, damping: 25 }}
+              className="relative w-[90vw] sm:w-96 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-3xl shadow-2xl overflow-hidden flex flex-col pointer-events-auto z-10"
+              style={{ maxHeight: '400px', height: '400px' }}
+            >
+              {/* Chat History */}
             <div className="flex-1 overflow-y-auto p-4 space-y-4">
               {history.map((msg, idx) => (
                 <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
@@ -474,27 +416,11 @@ export default function AssistantWidget({ user }) {
               </form>
             </div>
           </motion.div>
+          </>
         )}
       </AnimatePresence>
 
-      {/* Floating Action Button */}
-      {!isOpen && !isPillMode && (
-        <motion.button
-          initial={{ scale: 0 }}
-          animate={{ scale: 1 }}
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-          onClick={() => setIsOpen(true)}
-          className="bg-blue-500 hover:bg-blue-600 text-white p-4 rounded-full shadow-lg flex items-center justify-center relative group"
-        >
-          <Bell className="w-6 h-6" />
-          {reminders.length > 0 && (
-            <span className="absolute top-0 right-0 w-3 h-3 bg-red-500 border-2 border-white dark:border-neutral-900 rounded-full"></span>
-          )}
-        </motion.button>
-      )}
-
-      {/* Central Triggered Reminder Dialog */}
+      {/* Floating Action Button (Removed) */}      {/* Central Triggered Reminder Dialog */}
       <AnimatePresence>
         {triggeredReminder && (
           <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40 backdrop-blur-xl px-4">

@@ -152,25 +152,15 @@ export default function TaskPrompter({ userData }) {
             onSubmit={handleSend}
             className="flex items-end gap-2 bg-neutral-100 dark:bg-[#1E1F20] p-2 rounded-3xl shadow-sm focus-within:ring-1 focus-within:ring-neutral-300 dark:focus-within:ring-neutral-700 transition-shadow"
           >
-            <button 
-              type="button" 
-              onClick={() => window.dispatchEvent(new CustomEvent('toggle_reminders_widget'))}
-              className="p-3 rounded-full transition-colors shrink-0 mb-0.5 ml-0.5 relative text-neutral-500 hover:text-blue-500 hover:bg-neutral-200 dark:hover:bg-[#333537]"
-              title="Reminders AI"
-            >
-              <Bell className="w-5 h-5" />
-              {remindersCount > 0 && (
-                <span className="absolute top-1 right-1.5 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-neutral-100 dark:border-[#1E1F20]"></span>
-              )}
-            </button>
+
 
             <button 
               type="button" 
-              onClick={() => window.dispatchEvent(new CustomEvent('toggle_global_voice'))}
-              className={`p-3 rounded-full transition-colors shrink-0 mb-0.5 ${isGlobalVoiceListening ? 'text-white bg-blue-600 animate-pulse shadow-[0_0_15px_rgba(37,99,235,0.5)]' : 'text-neutral-500 hover:text-blue-500 hover:bg-neutral-200 dark:hover:bg-[#333537]'}`}
+              onClick={() => window.dispatchEvent(new CustomEvent('toggle_global_voice', { detail: { source: 'input_mic' } }))}
+              className={`p-3 rounded-full shrink-0 mb-0.5 cursor-pointer ${isGlobalVoiceListening ? 'bg-red-500 border border-red-400 text-white shadow-[0_0_20px_rgba(239,68,68,0.6)] animate-pulse transition-all duration-200' : 'bg-blue-600/40 backdrop-blur-md border border-blue-400/30 text-white shadow-lg shadow-blue-600/20 hover:scale-105 transition-all duration-200'}`}
               title="Global Voice Assistant"
             >
-              {isGlobalVoiceListening ? <Mic className="w-5 h-5" /> : <MicOff className="w-5 h-5" />}
+              <Mic className={`w-5 h-5 ${isGlobalVoiceListening ? 'animate-pulse' : ''}`} />
             </button>
 
             <textarea

@@ -81,9 +81,13 @@ export default function RemindersDashboard() {
       {/* Header */}
       <div className="flex items-center justify-between p-5 border-b border-neutral-200/50 dark:border-neutral-800/50 bg-white/30 dark:bg-black/10 backdrop-blur-md sticky top-0 z-20">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center">
-            <Bell className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-          </div>
+          <button 
+            onClick={() => window.dispatchEvent(new CustomEvent('toggle_reminders_widget'))}
+            className="w-10 h-10 rounded-xl bg-blue-500/10 hover:bg-blue-500/20 text-blue-600 dark:text-blue-400 transition-colors shadow-sm flex items-center justify-center cursor-pointer"
+            title="Reminder AI Chat"
+          >
+            <Bell className="w-5 h-5 animate-pulse" />
+          </button>
           <div>
             <h2 className="text-lg font-bold text-neutral-900 dark:text-white">Active Reminders</h2>
             <p className="text-xs text-neutral-500 dark:text-neutral-400 font-medium tracking-wide">

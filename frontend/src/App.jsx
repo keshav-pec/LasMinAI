@@ -6,7 +6,7 @@ import Home from './pages/Home';
 import Auth from './pages/Auth';
 import TaskPrompter from './pages/TaskPrompter'; // Renamed component
 import WorkStation from './pages/WorkStation';
-import AssistantWidget from './components/AssistantWidget';
+import RemindersAssistant from './components/RemindersAssistant';
 import GlobalVoiceAssistant from './components/GlobalVoiceAssistant';
 import DummyRegistration from './pages/DummyRegistration';
 import Settings from './pages/Settings';
@@ -59,7 +59,7 @@ export default function App() {
           },
         }} 
       />
-      <AssistantWidget user={userData} />
+      <RemindersAssistant user={userData} />
       <GlobalVoiceAssistant isAuthenticated={isAuthenticated} />
       <div className="min-h-screen bg-neutral-50 dark:bg-[#131314] text-neutral-900 dark:text-neutral-200 font-sans transition-colors duration-500">
         <Navbar userData={userData} setUserData={setUserData} />

@@ -18,6 +18,23 @@ const CalendarWidget = memo(function CalendarWidget({ tasks = [], handleToggleCo
     setSelectedDate(next);
   };
 
+  const getDateHeading = (date) => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    const targetDate = new Date(date);
+    targetDate.setHours(0, 0, 0, 0);
+
+    const diffTime = targetDate.getTime() - today.getTime();
+    const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
+
+    if (diffDays === 0) return "Today";
+    if (diffDays === 1) return "Tomorrow";
+    if (diffDays === -1) return "Yesterday";
+    
+    return date.toLocaleDateString('en-US', { weekday: 'long' });
+  };
+  
   const isToday = (date) => {
     const today = new Date();
     return date.getDate() === today.getDate() &&
@@ -58,7 +75,7 @@ const CalendarWidget = memo(function CalendarWidget({ tasks = [], handleToggleCo
         </button>
         <div className="text-center">
           <h2 className="text-lg font-bold text-neutral-900 dark:text-white">
-            {isToday(selectedDate) ? "Today" : selectedDate.toLocaleDateString('en-US', { weekday: 'long' })}
+            {getDateHeading(selectedDate)}
           </h2>
           <p className="text-xs text-neutral-500 dark:text-neutral-400 font-medium tracking-wide">
             {selectedDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
