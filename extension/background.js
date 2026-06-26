@@ -2,7 +2,22 @@ const API_URL = 'http://localhost:5050';
 const FRONTEND_URL = 'http://localhost:5174';
 const PROD_FRONTEND_URL = 'https://lasminai.vercel.app';
 
-// 1. Setup Auth Syncing
+// 1. Setup Context Menus
+chrome.runtime.onInstalled.addListener(() => {
+  chrome.contextMenus.create({
+    id: 'lasminai-autofill',
+    title: 'Auto-fill form with LasMinAI',
+    contexts: ['page', 'editable']
+  });
+});
+
+chrome.contextMenus.onClicked.addListener((info, tab) => {
+  if (info.menuItemId === 'lasminai-autofill' && tab.id) {
+    chrome.tabs.sendMessage(tab.id, { type: 'TRIGGER_AUTOFILL' }).catch(() => {});
+  }
+});
+
+// 2. Setup Auth Syncing
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.type === 'SYNC_AUTH') {
     (async () => {
@@ -118,7 +133,11 @@ async function pollReminders() {
       }
     }
   } catch (err) {
-    console.error("Failed to poll reminders", err);
+    if (err.message.includes('Failed to fetch')) {
+      console.warn("LasMinAI: Backend unreachable. Will retry polling later.");
+    } else {
+      console.error("Failed to poll reminders", err);
+    }
   }
 }
 

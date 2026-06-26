@@ -201,11 +201,9 @@ export default function GlobalVoiceAssistant({ isAuthenticated }) {
 
   processCommandRef.current = processVoiceCommand;
 
-
-
-  processCommandRef.current = processVoiceCommand;
-
-  if (!isAuthenticated || location.pathname === '/auth') return null;
+  if (!isAuthenticated || location.pathname === '/auth' || location.pathname === '/settings') {
+    return null;
+  }
 
   return (
     <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end gap-4">

@@ -390,3 +390,95 @@ btnSnooze.addEventListener('click', () => {
     body: { remindAt: snoozeTime.toISOString() }
   }, () => {});
 });
+
+// 6. Form Autofill Logic
+chrome.runtime.onMessage.addListener((message) => {
+  if (message.type === 'TRIGGER_AUTOFILL') {
+    handleAutofill();
+  }
+});
+
+async function handleAutofill() {
+  const inputs = Array.from(document.querySelectorAll('input:not([type="hidden"]):not([type="submit"]):not([type="button"]), textarea, select'));
+  if (inputs.length === 0) {
+    alert("LasMinAI: No fillable form fields found on this page.");
+    return;
+  }
+
+  const formSchema = inputs.map(el => {
+    let labelText = '';
+    if (el.labels && el.labels.length > 0) {
+      labelText = el.labels[0].innerText;
+    } else if (el.id) {
+      const label = document.querySelector(`label[for="${el.id}"]`);
+      if (label) labelText = label.innerText;
+    }
+
+    let options = [];
+    if (el.tagName.toLowerCase() === 'select') {
+      options = Array.from(el.options).map(opt => opt.value).filter(val => val !== '');
+    }
+
+    return {
+      id: el.id || '',
+      name: el.name || '',
+      type: el.type || el.tagName.toLowerCase(),
+      placeholder: el.placeholder || '',
+      label: labelText.trim(),
+      ...(options.length > 0 && { options })
+    };
+  }).filter(field => field.id || field.name || field.label);
+
+  if (formSchema.length === 0) {
+    alert("LasMinAI: Form fields do not have proper IDs/Names to map.");
+    return;
+  }
+
+  // Show a loading toast
+  const toast = document.createElement('div');
+  toast.innerText = "LasMinAI is analyzing the form...";
+  toast.style.position = 'fixed';
+  toast.style.top = '20px';
+  toast.style.right = '20px';
+  toast.style.padding = '12px 20px';
+  toast.style.background = '#3b82f6';
+  toast.style.color = 'white';
+  toast.style.borderRadius = '8px';
+  toast.style.zIndex = '999999';
+  toast.style.boxShadow = '0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)';
+  toast.style.fontFamily = 'system-ui, -apple-system, sans-serif';
+  toast.style.fontSize = '14px';
+  toast.style.fontWeight = '500';
+  document.body.appendChild(toast);
+
+  safeSendMessage({
+    type: 'PROXY_FETCH',
+    url: '/api/autofill/process',
+    method: 'POST',
+    body: { formSchema }
+  }, (response) => {
+    if (response && response.success && response.data && response.data.data) {
+      const fieldData = response.data.data;
+      let filledCount = 0;
+      
+      inputs.forEach(el => {
+        const keyMatch = fieldData[el.id] || fieldData[el.name];
+        if (keyMatch) {
+          el.value = keyMatch;
+          filledCount++;
+          // Dispatch events for React/Vue bindings
+          el.dispatchEvent(new Event('input', { bubbles: true }));
+          el.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+      });
+      
+      toast.innerText = `Autofill Complete! Filled ${filledCount} fields.`;
+      toast.style.background = '#22c55e';
+    } else {
+      toast.innerText = "Autofill Failed: " + (response?.error || response?.data?.message || "Unknown error");
+      toast.style.background = '#ef4444';
+    }
+    
+    setTimeout(() => toast.remove(), 4000);
+  });
+}

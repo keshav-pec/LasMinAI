@@ -331,7 +331,7 @@ export default function AssistantWidget({ user }) {
   }, [isOpen]);
 
   // Hide if on auth page or user is not logged in
-  if (!user || location.pathname === '/auth') {
+  if (!user || location.pathname === '/auth' || location.pathname === '/settings') {
     return null;
   }
 

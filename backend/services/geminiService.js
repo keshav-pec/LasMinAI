@@ -117,7 +117,7 @@ const parseWorkstationMessage = async (userMessage, history = [], currentTasks =
 };
 
 // ==========================================
-// 2. CHAT PARSING & INTENT EXTRACTION (CRUD)
+// 3. CHAT PARSING & INTENT EXTRACTION (CRUD)
 // ==========================================
 const intentSchema = {
   type: Type.OBJECT,
@@ -489,11 +489,82 @@ const generateTaskDigestMaterial = async (tasks, retries = 3, backoffDelay = 200
   }
 };
 
+const autofillSchema = {
+  type: Type.ARRAY,
+  description: "A list of filled form fields.",
+  items: {
+    type: Type.OBJECT,
+    properties: {
+      fieldKey: { type: Type.STRING, description: "The exact 'id' or 'name' of the form field from the provided schema." },
+      value: { type: Type.STRING, description: "The suggested autofill value." }
+    },
+    required: ["fieldKey", "value"]
+  }
+};
+
+const generateFormAutofillData = async (formSchema, userProfile, retries = 3, backoffDelay = 2000) => {
+  try {
+    const systemInstruction = `
+      You are an expert form auto-filler assistant.
+      The user has provided a JSON array representing the fields found on a web form, and their comprehensive User Profile (including a 'persona' object).
+      Your job is to match the user's profile information to the form fields and return an array of filled fields.
+      
+      CRITICAL INSTRUCTIONS FOR PERSONA DATA:
+      - The 'persona' object contains rich, raw string data typed by the user (e.g. they might have typed "95%" for marks or "A+" for grades).
+      - You must intelligently adapt this raw string data to fit the specific input type required by the form schema. If the schema demands a pure number for a "percentage" field, strip the "%" sign. If it is a generic text field, use your best judgment.
+      - If the user profile lacks the necessary information, invent highly realistic dummy data to fill the gaps.
+      - For <select> dropdowns, ensure your output perfectly matches one of the expected option values if they are provided, or matches the expected format.
+      
+      Always prioritize matching the real user profile data first. Only return the fields you can confidently fill.
+    `;
+
+    const config = {
+      systemInstruction,
+      responseMimeType: "application/json",
+      responseSchema: autofillSchema,
+      temperature: 0.2
+    };
+
+    const promptText = `User Profile:\n${JSON.stringify(userProfile, null, 2)}\n\nForm Schema:\n${JSON.stringify(formSchema, null, 2)}`;
+
+    const response = await ai.models.generateContent({
+      model: 'gemini-3.1-flash-lite',
+      contents: [{ role: 'user', parts: [{ text: promptText }] }],
+      config
+    });
+
+    const parsedArray = JSON.parse(response.text);
+    
+    // Map array back to a key-value object for the frontend
+    const mappedResponse = {};
+    parsedArray.forEach(item => {
+      mappedResponse[item.fieldKey] = item.value;
+    });
+
+    return { success: true, data: mappedResponse };
+  } catch (error) {
+    const errorString = error.message || error.toString();
+    console.error(`⚠️ Gemini Autofill Error: ${errorString}`);
+
+    // If Rate Limit (429) or Quota Exhausted, use exponential backoff
+    if (errorString.includes('429') || errorString.includes('RESOURCE_EXHAUSTED')) {
+      if (retries > 0) {
+        console.log(`⏳ Rate Limit Hit. Backing off for ${backoffDelay}ms... (${retries} retries left)`);
+        await sleep(backoffDelay);
+        return await generateFormAutofillData(formSchema, userProfile, retries - 1, backoffDelay * 2);
+      }
+    }
+
+    return { success: false, error: errorString };
+  }
+};
+
 module.exports = {
   parseUserMessage,
   parseWorkstationMessage,
   parseReminderMessage,
   parseGeneralMessage,
   parseOrchestratorIntent,
-  generateTaskDigestMaterial
+  generateTaskDigestMaterial,
+  generateFormAutofillData
 };

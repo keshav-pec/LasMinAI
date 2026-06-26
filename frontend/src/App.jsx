@@ -8,6 +8,8 @@ import TaskPrompter from './pages/TaskPrompter'; // Renamed component
 import WorkStation from './pages/WorkStation';
 import AssistantWidget from './components/AssistantWidget';
 import GlobalVoiceAssistant from './components/GlobalVoiceAssistant';
+import DummyRegistration from './pages/DummyRegistration';
+import Settings from './pages/Settings';
 
 const ProtectedRoute = ({ isAuthenticated, children }) => {
   if (isAuthenticated === null) return null;
@@ -76,6 +78,15 @@ export default function App() {
             element={
               <ProtectedRoute isAuthenticated={isAuthenticated}>
                 <WorkStation userData={userData} />
+              </ProtectedRoute>
+            } 
+          />
+          <Route path="/dummy-registration" element={<DummyRegistration />} />
+          <Route 
+            path="/settings" 
+            element={
+              <ProtectedRoute isAuthenticated={isAuthenticated}>
+                <Settings userData={userData} />
               </ProtectedRoute>
             } 
           />

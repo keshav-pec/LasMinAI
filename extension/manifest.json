@@ -8,7 +8,8 @@
     "cookies",
     "scripting",
     "tabs",
-    "alarms"
+    "alarms",
+    "contextMenus"
   ],
   "host_permissions": [
     "<all_urls>"
