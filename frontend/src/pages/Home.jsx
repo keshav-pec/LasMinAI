@@ -1,6 +1,6 @@
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
-import { Zap, Calendar, BrainCircuit } from 'lucide-react';
+import { Mic, ShieldAlert, BrainCircuit } from 'lucide-react';
 import { useTasks } from '../hooks/useTasks';
 import CalendarWidget from '../components/CalendarWidget';
 import RemindersDashboard from '../components/RemindersDashboard';
@@ -76,21 +76,23 @@ export default function Home({ isAuthenticated }) {
         {/* Feature Grid */}
         <motion.div variants={itemVariants} className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-20 text-left pb-10">
           {[
-             { icon: BrainCircuit, title: "Algorithmic Routing", desc: "Prioritizes tasks using mathematical complexity and effort weighting.", delay: 0 },
-             { icon: Calendar, title: "Autonomous Sync", desc: "Pushes optimized time-blocks directly to your Google Calendar.", delay: 0.2 },
-             { icon: Zap, title: "Agentic Execution", desc: "Generates cognitive break schedules and technical execution strategies.", delay: 0.4 }
+             { icon: Mic, title: "Global Voice Assistant", desc: "Control the app with voice commands from anywhere and magically autofill forms on any website using our Chrome Extension.", delay: 0 },
+             { icon: ShieldAlert, title: "Focus Mode & Reminders", desc: "Enforce productivity with full-screen blocking overlays, alert sounds, and math-puzzle dismissals.", delay: 0.2 },
+             { icon: BrainCircuit, title: "AI Task Prompter", desc: "Interact with AI to break down complex goals into actionable step-by-step blueprints via our Generative UI.", delay: 0.4 }
           ].map((feature, i) => (
             <motion.div 
               key={i} 
               whileHover={{ y: -5, rotate: 1, scale: 1.02 }}
               transition={{ type: "spring", stiffness: 300 }}
-              className="p-6 rounded-2xl bg-white/40 dark:bg-white/5 backdrop-blur-xl border border-white/20 dark:border-white/10 shadow-[0_8px_32px_0_rgba(31,38,135,0.07)] hover:border-blue-400/50 dark:hover:border-blue-500/50 hover:shadow-[0_0_20px_rgba(59,130,246,0.3)] transition-colors cursor-pointer"
+              className="p-6 min-h-[180px] rounded-2xl bg-white/40 dark:bg-white/5 backdrop-blur-xl border border-white/20 dark:border-white/10 shadow-[0_8px_32px_0_rgba(31,38,135,0.07)] hover:border-blue-400/50 dark:hover:border-blue-500/50 hover:shadow-[0_0_20px_rgba(59,130,246,0.3)] transition-colors cursor-pointer"
             >
-              <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center mb-5">
-                <feature.icon className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center shrink-0">
+                  <feature.icon className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                </div>
+                <h3 className="text-lg font-bold text-neutral-900 dark:text-white tracking-tight">{feature.title}</h3>
               </div>
-              <h3 className="text-lg font-bold text-neutral-900 dark:text-white mb-2 tracking-tight">{feature.title}</h3>
-              <p className="text-xs text-neutral-600 dark:text-neutral-400 leading-relaxed">{feature.desc}</p>
+              <p className="text-sm text-neutral-600 dark:text-neutral-400 leading-relaxed">{feature.desc}</p>
             </motion.div>
           ))}
         </motion.div>

@@ -105,7 +105,7 @@ export default function WorkStation({ userData }) {
       }
     } catch (error) {
       setIsTyping(false);
-      toast.error("Failed to process your request. Please try again.");
+      toast.error("Failed to process your request. Please try again.", { icon: '⚠️' });
       setMessages((prev) => [
         ...prev,
         { id: `ai-${Date.now()}-${Math.random()}`, role: 'ai', content: "**Error connecting to Execution Manager.**" }

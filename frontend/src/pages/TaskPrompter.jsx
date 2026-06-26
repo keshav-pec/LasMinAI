@@ -95,7 +95,7 @@ export default function TaskPrompter({ userData }) {
         );
       }
     } catch (error) {
-      toast.error("Failed to process your request. Please try again.");
+      toast.error("Failed to process your request. Please try again.", { icon: '⚠️' });
       setMessages((prev) => 
         prev.map(msg => msg.id === uniqueLoadingId ? { ...msg, content: "**Error connecting to LasMinAI core.**" } : msg)
       );

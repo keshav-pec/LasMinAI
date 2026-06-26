@@ -34,7 +34,7 @@ export default function App() {
           });
         }
       } catch (error) {
-        toast.error("Could not connect to the server.", { id: 'server-error-toast' });
+        toast.error("Could not connect to the server.", { icon: '🔌', id: 'server-error-toast' });
       } finally {
         setIsLoading(false);
       }
@@ -50,6 +50,7 @@ export default function App() {
     <Router>
       <Toaster 
         position="bottom-left" 
+        containerStyle={{ zIndex: 9999999 }}
         toastOptions={{
           className: 'bg-white/80 dark:bg-neutral-800/80 backdrop-blur-md text-neutral-900 dark:text-neutral-100 border border-neutral-200 dark:border-neutral-700 shadow-xl',
           style: {

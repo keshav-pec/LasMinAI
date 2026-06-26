@@ -94,14 +94,14 @@ export default function GlobalVoiceAssistant({ isAuthenticated }) {
       recognitionRef.current?.stop();
       setIsListening(false);
       setTranscript('');
-      toast.success("Voice Assistant paused.");
+      toast.success("Voice Assistant paused.", { icon: '⏸️' });
     } else {
       try {
         recognitionRef.current?.start();
       } catch(e) {}
       setIsListening(true);
       setTranscript(''); // Clear old transcripts when waking up
-      toast.success("Voice Assistant Activated. I'm listening!");
+      toast.success("Voice Assistant Activated. I'm listening!", { icon: '🎙️' });
     }
   };
 

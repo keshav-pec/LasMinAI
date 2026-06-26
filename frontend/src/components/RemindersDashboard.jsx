@@ -35,27 +35,32 @@ export default function RemindersDashboard() {
     };
   }, []);
 
-  const handleDismissReminder = async (id) => {
+  const handleDismissReminder = async (reminderId) => {
     try {
-      await axios.put(`${import.meta.env.VITE_API_URL}/api/reminders/${id}/dismiss`, {}, { withCredentials: true });
-      toast.success("Reminder dismissed");
-      broadcastReminderAction('DISMISSED', { id });
-      fetchReminders();
-    } catch (err) {
-      console.error(err);
-      toast.error("Failed to dismiss reminder");
+      const response = await axios.put(`${import.meta.env.VITE_API_URL}/api/reminders/${reminderId}/dismiss`, {}, { withCredentials: true });
+      if (response.data.success) {
+        setReminders(prev => prev.filter(r => r._id !== reminderId));
+        toast.success("Reminder dismissed", { icon: '✅' });
+        broadcastReminderAction('DISMISSED', { id: reminderId });
+      }
+    } catch (error) {
+      console.error(error);
+      toast.error("Failed to dismiss reminder", { icon: '❌' });
     }
   };
 
-  const handleSnoozeReminder = async (id) => {
+  const handleSnoozeReminder = async (reminderId) => {
     try {
-      await axios.put(`${import.meta.env.VITE_API_URL}/api/reminders/${id}/snooze`, {}, { withCredentials: true });
-      toast.success("Snoozed for 10 minutes");
-      broadcastReminderAction('SNOOZED', { id });
-      fetchReminders();
-    } catch (err) {
-      console.error(err);
-      toast.error("Failed to snooze reminder");
+      const response = await axios.put(`${import.meta.env.VITE_API_URL}/api/reminders/${reminderId}/snooze`, {}, { withCredentials: true });
+      if (response.data.success) {
+        const snoozeTime = new Date(new Date().getTime() + 10 * 60000);
+        setReminders(prev => prev.map(r => r._id === reminderId ? { ...r, remindAt: snoozeTime.toISOString() } : r));
+        toast.success("Snoozed for 10 minutes", { icon: '⏰' });
+        broadcastReminderAction('SNOOZED', { id: reminderId });
+      }
+    } catch (error) {
+      console.error(error);
+      toast.error("Failed to snooze reminder", { icon: '❌' });
     }
   };
 

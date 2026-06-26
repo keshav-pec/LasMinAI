@@ -244,7 +244,7 @@ export default function AssistantWidget({ user }) {
       setTriggeredReminder((prev) => (prev && prev._id === id ? null : prev));
       if (!isBroadcast) {
         await axios.put(`${import.meta.env.VITE_API_URL}/api/reminders/${id}/snooze`, {}, { withCredentials: true });
-        toast.success("Snoozed for 10 minutes");
+        toast.success("Snoozed for 10 minutes", { icon: '⏰' });
         broadcastReminderAction('SNOOZED', { id });
         fetchReminders();
       } else {
@@ -259,7 +259,7 @@ export default function AssistantWidget({ user }) {
   const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
   const handleVoiceInput = () => {
     if (!SpeechRecognition) {
-      toast.error("Your browser doesn't support voice input.");
+      toast.error("Your browser doesn't support voice input.", { icon: '🚫' });
       return;
     }
     const recognition = new SpeechRecognition();
@@ -271,7 +271,7 @@ export default function AssistantWidget({ user }) {
     recognition.onend = () => setIsListening(false);
     recognition.onerror = (e) => {
       setIsListening(false);
-      if (e.error !== 'no-speech') toast.error("Microphone error.");
+      if (e.error !== 'no-speech') toast.error("Microphone error.", { icon: '🎤' });
     };
 
     recognition.onresult = (event) => {
@@ -317,7 +317,7 @@ export default function AssistantWidget({ user }) {
         broadcastReminderAction('FETCH'); // Let other tabs/components know!
       }
     } catch (error) {
-      toast.error("Assistant failed to respond.");
+      toast.error("Assistant failed to respond.", { icon: '🤖' });
     } finally {
       setIsProcessing(false);
     }

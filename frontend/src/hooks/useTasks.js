@@ -44,14 +44,14 @@ export function useTasks(isAuthenticated = true) {
       }, { withCredentials: true });
 
       if (response.data.success) {
-        if (newStatus === 'completed') toast.success("Task completed! Great job.");
-        else toast.success("Task restored.");
+        if (newStatus === 'completed') toast.success("Task completed! Great job.", { icon: '🎉' });
+        else toast.success("Task restored.", { icon: '⏪' });
       } else {
-        toast.error("Failed to update task status");
+        toast.error("Failed to update task status", { icon: '❌' });
         fetchTasks();
       }
     } catch (error) {
-      toast.error("Failed to update task status");
+      toast.error("Failed to update task status", { icon: '❌' });
       fetchTasks();
     }
   };

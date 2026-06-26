@@ -47,10 +47,12 @@ export default function Settings({ userData }) {
       }, { withCredentials: true });
 
       if (response.data.success) {
-        toast.success("Settings saved successfully!");
+        toast.success("Settings saved successfully!", { icon: '⚙️' });
+      } else {
+        toast.error(data.message || "Failed to save settings.", { icon: '❌' });
       }
     } catch (error) {
-      toast.error("Failed to save settings.");
+      toast.error("Failed to save settings.", { icon: '❌' });
       console.error(error);
     } finally {
       setIsSaving(false);

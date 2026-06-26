@@ -80,9 +80,9 @@ export default function Navbar({ userData, setUserData }) {
         method: 'POST',
         credentials: 'include' 
       });
-      toast.success("Successfully logged out.");
+      toast.success("Successfully logged out.", { icon: '🚪' });
     } catch (error) {
-      toast.error('Logout failed.');
+      toast.error('Logout failed.', { icon: '⚠️' });
     }
     setUserData(null);
     setIsMenuOpen(false);
