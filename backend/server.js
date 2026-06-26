@@ -12,6 +12,7 @@ const reminderRoutes = require('./routes/reminderRoutes');
 const voiceRoutes = require('./routes/voiceRoutes');
 const autofillRoutes = require('./routes/autofillRoutes');
 const userRoutes = require('./routes/userRoutes');
+const reportRoutes = require('./routes/reportRoutes');
 const { startEmailWorker } = require('./services/emailWorker');
 
 const app = express();
@@ -59,6 +60,7 @@ app.use('/api/voice', aiLimiter, voiceRoutes);
 app.use('/api/autofill', aiLimiter, autofillRoutes);
 app.use('/api/reminders', generalApiLimiter, reminderRoutes); // General limit for CRUD
 app.use('/api/user', generalApiLimiter, userRoutes);
+app.use('/api/reports', generalApiLimiter, reportRoutes);
 
 // Basic Health Check Route
 app.get('/api/health', (req, res) => {

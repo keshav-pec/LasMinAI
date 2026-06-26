@@ -35,12 +35,7 @@ export default function GlobalVoiceAssistant({ isAuthenticated }) {
     window.dispatchEvent(new CustomEvent('sync_voice_listening', { detail: isListening }));
   }, [isListening]);
 
-  // Listen for remote toggles from UI pills
-  useEffect(() => {
-    const handler = () => toggleListening();
-    window.addEventListener('toggle_global_voice', handler);
-    return () => window.removeEventListener('toggle_global_voice', handler);
-  }, [isListening]); // Re-bind so it has latest closure, or use a ref
+
 
   useEffect(() => {
     if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
@@ -206,10 +201,6 @@ export default function GlobalVoiceAssistant({ isAuthenticated }) {
 
   processCommandRef.current = processVoiceCommand;
 
-  if (!isAuthenticated || location.pathname === '/auth' || location.pathname === '/settings') {
-    return null;
-  }
-
   useEffect(() => {
     const handleToggleEvent = (e) => toggleListening(e.detail?.source || 'floating_mic');
     window.addEventListener('toggle_global_voice', handleToggleEvent);
@@ -241,7 +232,7 @@ export default function GlobalVoiceAssistant({ isAuthenticated }) {
                 <Volume2 className="w-4 h-4 text-blue-500 animate-pulse" />
               )}
               <span className="text-xs font-bold tracking-widest uppercase text-blue-500">
-                LasMin Voice {isProcessing && <span className="text-gray-400 normal-case tracking-normal ml-1">(Thinking...)</span>}
+                LasminAI Assistant {isProcessing && <span className="text-gray-400 normal-case tracking-normal ml-1">(Thinking...)</span>}
               </span>
             </div>
             <div className="text-sm font-medium leading-relaxed max-h-[50vh] overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">

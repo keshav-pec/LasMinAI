@@ -1,9 +1,12 @@
 import { useState, useMemo, memo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronLeft, ChevronRight, CheckCircle2, Clock, Check } from 'lucide-react';
+import { ChevronLeft, ChevronRight, CheckCircle2, Clock, Check, FileDown, Loader2 } from 'lucide-react';
+import axios from 'axios';
+import toast from 'react-hot-toast';
 
 const CalendarWidget = memo(function CalendarWidget({ tasks = [], handleToggleComplete }) {
   const [selectedDate, setSelectedDate] = useState(new Date());
+  const [isExporting, setIsExporting] = useState(false);
 
   // Date Navigation
   const goToPreviousDay = () => {
@@ -65,6 +68,30 @@ const CalendarWidget = memo(function CalendarWidget({ tasks = [], handleToggleCo
     return { bg: 'bg-blue-500/10 dark:bg-blue-900/20', text: 'text-blue-700 dark:text-blue-400', dot: 'bg-blue-500', border: 'border-blue-500/20' };
   };
 
+  const handleExport = async () => {
+    setIsExporting(true);
+    // Use local date string to avoid UTC shift issues
+    const year = selectedDate.getFullYear();
+    const month = String(selectedDate.getMonth() + 1).padStart(2, '0');
+    const day = String(selectedDate.getDate()).padStart(2, '0');
+    const dateStr = `${year}-${month}-${day}`;
+    
+    try {
+      toast.loading("Generating Google Doc with AI...", { id: 'export-toast' });
+      const userTimezone = encodeURIComponent(Intl.DateTimeFormat().resolvedOptions().timeZone);
+      const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/reports/daily-doc?date=${dateStr}&timezone=${userTimezone}`, { withCredentials: true });
+      if (response.data.success && response.data.documentUrl) {
+        toast.success("Google Doc generated successfully!", { id: 'export-toast', icon: '📄' });
+        window.open(response.data.documentUrl, '_blank');
+      }
+    } catch (error) {
+      console.error("Export error", error);
+      toast.error(error.response?.data?.message || "Failed to generate Google Doc.", { id: 'export-toast', icon: '❌' });
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   return (
     <div className="w-full h-fit max-h-[500px] lg:max-h-[800px] bg-white/60 dark:bg-black/20 backdrop-blur-xl border border-neutral-200 dark:border-neutral-800 rounded-[2rem] flex flex-col z-10 overflow-hidden shadow-2xl relative">
       
@@ -73,13 +100,23 @@ const CalendarWidget = memo(function CalendarWidget({ tasks = [], handleToggleCo
         <button onClick={goToPreviousDay} className="p-2 hover:bg-neutral-200 dark:hover:bg-neutral-800 rounded-full transition-colors text-neutral-600 dark:text-neutral-400 cursor-pointer">
           <ChevronLeft className="w-5 h-5" />
         </button>
-        <div className="text-center">
-          <h2 className="text-lg font-bold text-neutral-900 dark:text-white">
-            {getDateHeading(selectedDate)}
-          </h2>
-          <p className="text-xs text-neutral-500 dark:text-neutral-400 font-medium tracking-wide">
-            {selectedDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-          </p>
+        <div className="flex items-center gap-3">
+          <div className="text-center">
+            <h2 className="text-lg font-bold text-neutral-900 dark:text-white">
+              {getDateHeading(selectedDate)}
+            </h2>
+            <p className="text-xs text-neutral-500 dark:text-neutral-400 font-medium tracking-wide">
+              {selectedDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+            </p>
+          </div>
+          <button 
+            onClick={handleExport} 
+            disabled={isExporting || filteredTasks.length === 0}
+            className={`p-2 rounded-xl transition-colors shadow-sm flex items-center justify-center cursor-pointer ${isExporting ? 'bg-neutral-100 dark:bg-neutral-800' : 'bg-blue-500/10 hover:bg-blue-500/20 text-blue-600 dark:text-blue-400'} disabled:opacity-50`}
+            title="Export to Google Docs"
+          >
+            {isExporting ? <Loader2 className="w-5 h-5 animate-spin text-neutral-500" /> : <FileDown className="w-5 h-5" />}
+          </button>
         </div>
         <button onClick={goToNextDay} className="p-2 hover:bg-neutral-200 dark:hover:bg-neutral-800 rounded-full transition-colors text-neutral-600 dark:text-neutral-400 cursor-pointer">
           <ChevronRight className="w-5 h-5" />

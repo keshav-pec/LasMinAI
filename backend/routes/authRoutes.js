@@ -30,7 +30,8 @@ router.get('/google', (req, res) => {
     'https://www.googleapis.com/auth/calendar.events',
     'https://www.googleapis.com/auth/userinfo.profile',
     'https://www.googleapis.com/auth/userinfo.email',
-    'https://www.googleapis.com/auth/gmail.send'
+    'https://www.googleapis.com/auth/gmail.send',
+    'https://www.googleapis.com/auth/drive.file'
   ];
   
   const state = crypto.randomBytes(32).toString('hex');
