@@ -1,20 +1,26 @@
+const isLasMinWebApp = window.location.href.includes('localhost:5174') || window.location.href.includes('localhost:5050') || window.location.href.includes('lasminai.vercel.app');
+
 // 1. Inject the Container
 const root = document.createElement('div');
 root.id = 'lasminai-ext-root';
+if (isLasMinWebApp) {
+  root.style.display = 'none';
+}
 document.documentElement.appendChild(root);
 const safeSendMessage = (msg, callback) => {
   if (!chrome.runtime?.id) {
-    console.warn("LasMinAI Extension context invalidated. Please refresh the page.");
     return;
   }
   try {
     chrome.runtime.sendMessage(msg, callback);
   } catch(e) {
-    console.warn("LasMinAI Extension error:", e);
   }
 };
 
 // 2. Build the Voice Assistant UI
+const widgetContainer = document.createElement('div');
+widgetContainer.className = 'lasminai-widget-container';
+
 const micBtn = document.createElement('div');
 micBtn.className = 'lasminai-mic-btn';
 micBtn.innerHTML = `
@@ -35,8 +41,9 @@ bubble.innerHTML = `
   <div class="lasminai-bubble-content" id="lasminai-transcript"></div>
 `;
 
-root.appendChild(bubble);
-root.appendChild(micBtn);
+widgetContainer.appendChild(bubble);
+widgetContainer.appendChild(micBtn);
+root.appendChild(widgetContainer);
 
 // 3. Speech Recognition Logic
 let recognition = null;
@@ -88,10 +95,9 @@ if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
   };
 
   recognition.onerror = (event) => {
-    if (event.error === 'aborted' || event.error === 'no-speech') {
-      return; // Ignore benign errors caused by manual stop or silence
+    if (event.error === 'aborted' || event.error === 'no-speech' || event.error === 'not-allowed') {
+      return; // Ignore benign errors caused by manual stop, silence, or mic blocking
     }
-    console.warn("Speech Recognition Warning:", event.error);
     document.getElementById('lasminai-transcript').innerText = "Mic Error: " + event.error;
     setTimeout(() => setListeningState(false), 2000);
   };
@@ -117,7 +123,46 @@ function setListeningState(listening) {
   }
 }
 
-micBtn.addEventListener('click', () => {
+let isDragging = false;
+let startX, startY, initialX, initialY;
+
+micBtn.addEventListener('mousedown', (e) => {
+  isDragging = false;
+  startX = e.clientX;
+  startY = e.clientY;
+  const rect = widgetContainer.getBoundingClientRect();
+  initialX = rect.left;
+  initialY = rect.top;
+
+  function onMouseMove(moveEvent) {
+    const dx = moveEvent.clientX - startX;
+    const dy = moveEvent.clientY - startY;
+    // Threshold to prevent micro-movements from counting as drags
+    if (Math.abs(dx) > 3 || Math.abs(dy) > 3) {
+      isDragging = true;
+      widgetContainer.style.right = 'auto'; 
+      widgetContainer.style.bottom = 'auto'; 
+      widgetContainer.style.left = `${initialX + dx}px`;
+      widgetContainer.style.top = `${initialY + dy}px`;
+    }
+  }
+
+  function onMouseUp() {
+    document.removeEventListener('mousemove', onMouseMove);
+    document.removeEventListener('mouseup', onMouseUp);
+  }
+
+  document.addEventListener('mousemove', onMouseMove);
+  document.addEventListener('mouseup', onMouseUp);
+});
+
+micBtn.addEventListener('click', (e) => {
+  if (isDragging) {
+    e.preventDefault();
+    e.stopPropagation();
+    return;
+  }
+  
   if (isListening) {
     recognition?.stop(); // will trigger onend
   } else {
