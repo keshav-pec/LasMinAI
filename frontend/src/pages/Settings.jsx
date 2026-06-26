@@ -443,13 +443,36 @@ export default function Settings({ userData }) {
               {/* EXTENSIONS TAB */}
               {activeTab === 'extensions' && (
                 <div className="space-y-6">
-                  <h2 className="text-xl font-semibold text-neutral-900 dark:text-white mb-6">Extensions</h2>
-                  <div className="h-64 flex flex-col items-center justify-center border-2 border-dashed border-neutral-200 dark:border-neutral-800 rounded-xl bg-neutral-50/50 dark:bg-neutral-950/50">
-                    <Blocks className="w-10 h-10 text-neutral-400 mb-4" />
-                    <p className="text-base font-medium text-neutral-700 dark:text-neutral-300 mb-1">Production-Ready Extensions</p>
-                    <p className="text-sm text-neutral-500 dark:text-neutral-400 max-w-sm text-center">
-                      Drop your unpacked extension folder here to manage local installations and updates.
+                  <h2 className="text-xl font-semibold text-neutral-900 dark:text-white mb-6">Browser Extension</h2>
+                  
+                  <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800/50 rounded-xl p-6 sm:p-8 flex flex-col items-center text-center">
+                    <Blocks className="w-12 h-12 text-blue-600 dark:text-blue-400 mb-4" />
+                    <h3 className="text-lg font-semibold text-neutral-900 dark:text-white mb-2">LasMinAI Everywhere</h3>
+                    <p className="text-sm text-neutral-600 dark:text-neutral-400 max-w-md mb-6">
+                      Get the production-ready Chrome Extension to autofill forms and enforce your focus across the entire web.
                     </p>
+                    
+                    <a 
+                      href="/lasminai-extension.zip" 
+                      download="lasminai-extension.zip"
+                      className="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors shadow-sm"
+                    >
+                      Download Extension (.zip)
+                    </a>
+                  </div>
+
+                  <div className="bg-neutral-50 dark:bg-neutral-800/50 border border-neutral-200 dark:border-neutral-700 rounded-xl p-6">
+                    <h4 className="text-sm font-semibold text-neutral-900 dark:text-white mb-4 uppercase tracking-wider flex items-center gap-2">
+                      <div className="w-1.5 h-4 bg-emerald-500 rounded-full"></div>
+                      Installation Instructions
+                    </h4>
+                    <ol className="list-decimal list-inside space-y-3 text-sm text-neutral-700 dark:text-neutral-300">
+                      <li>Download and extract the <strong>.zip</strong> file above to a folder on your computer.</li>
+                      <li>Open Google Chrome and navigate to <code className="bg-white dark:bg-neutral-900 px-2 py-0.5 rounded border border-neutral-200 dark:border-neutral-700 font-mono text-xs">chrome://extensions/</code></li>
+                      <li>Turn on <strong>Developer mode</strong> using the toggle switch in the top right corner.</li>
+                      <li>Click the <strong>Load unpacked</strong> button in the top left.</li>
+                      <li>Select the extracted folder.</li>
+                    </ol>
                   </div>
                 </div>
               )}

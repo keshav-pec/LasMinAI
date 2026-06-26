@@ -21,8 +21,10 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.type === 'SYNC_AUTH') {
     (async () => {
-      // Try to extract the cookie from the local API domain
-      const cookie = await chrome.cookies.get({ url: API_URL, name: 'auth_token' });
+      // Try to extract the cookie from the frontend or API domain
+      let cookie = await chrome.cookies.get({ url: FRONTEND_URL, name: 'auth_token' });
+      if (!cookie) cookie = await chrome.cookies.get({ url: API_URL, name: 'auth_token' });
+      
       if (cookie && cookie.value) {
         sendResponse({ success: true });
       } else {

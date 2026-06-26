@@ -1,254 +1,218 @@
-const isLasMinWebApp = window.location.href.includes('localhost:5174') || window.location.href.includes('localhost:5050') || window.location.href.includes('lasminai.vercel.app');
+let siteSettings = { voice: true, reminders: true };
 
-// 1. Inject the Container
-const root = document.createElement('div');
-root.id = 'lasminai-ext-root';
-if (isLasMinWebApp) {
-  root.style.display = 'none';
-}
-document.documentElement.appendChild(root);
-const safeSendMessage = (msg, callback) => {
-  if (!chrome.runtime?.id) {
-    return;
+chrome.storage.sync.get('siteSettings', ({ siteSettings: storedSettings = {} }) => {
+  const host = window.location.hostname;
+  siteSettings = storedSettings[host] || { voice: true, reminders: true };
+
+  // If BOTH are disabled, we don't need to do anything at all.
+  if (!siteSettings.voice && !siteSettings.reminders) {
+    return; 
   }
-  try {
-    chrome.runtime.sendMessage(msg, callback);
-  } catch(e) {
+
+  const isLasMinWebApp = window.location.href.includes('localhost:5174') || window.location.href.includes('localhost:5050') || window.location.href.includes('lasminai.vercel.app');
+
+// Only build and inject the Voice Assistant UI if voice is enabled
+if (siteSettings.voice) {
+  // 1. Inject the Container
+  const root = document.createElement('div');
+  root.id = 'lasminai-ext-root';
+  if (isLasMinWebApp) {
+    root.style.display = 'none';
   }
-};
+  document.documentElement.appendChild(root);
 
-// 2. Build the Voice Assistant UI
-const widgetContainer = document.createElement('div');
-widgetContainer.className = 'lasminai-widget-container';
+  const safeSendMessage = (msg, callback) => {
+    if (!chrome.runtime?.id) {
+      return;
+    }
+    try {
+      chrome.runtime.sendMessage(msg, callback);
+    } catch(e) {
+    }
+  };
 
-const micBtn = document.createElement('div');
-micBtn.className = 'lasminai-mic-btn';
-micBtn.innerHTML = `
-  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-    <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"></path>
-    <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
-    <line x1="12" x2="12" y1="19" y2="22"></line>
-  </svg>
-`;
+  // 2. Build the Voice Assistant UI
+  const widgetContainer = document.createElement('div');
+  widgetContainer.className = 'lasminai-widget-container';
 
-const bubble = document.createElement('div');
-bubble.className = 'lasminai-bubble';
-bubble.innerHTML = `
-  <div class="lasminai-bubble-header">
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 5L6 9H2v6h4l5 4V5z"></path><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path></svg>
-    LasMin Voice <span id="lasminai-status-text" style="color: #9ca3af; font-weight: 400; margin-left: 4px;"></span>
-  </div>
-  <div class="lasminai-bubble-content" id="lasminai-transcript"></div>
-`;
+  const micBtn = document.createElement('div');
+  micBtn.className = 'lasminai-mic-btn';
+  micBtn.innerHTML = `
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"></path>
+      <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+      <line x1="12" x2="12" y1="19" y2="22"></line>
+    </svg>
+  `;
 
-widgetContainer.appendChild(bubble);
-widgetContainer.appendChild(micBtn);
-root.appendChild(widgetContainer);
+  const bubble = document.createElement('div');
+  bubble.className = 'lasminai-bubble';
+  bubble.innerHTML = `
+    <div class="lasminai-bubble-header">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 5L6 9H2v6h4l5 4V5z"></path><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path></svg>
+      LasMin Voice <span id="lasminai-status-text" style="color: #9ca3af; font-weight: 400; margin-left: 4px;"></span>
+    </div>
+    <div class="lasminai-bubble-content" id="lasminai-transcript"></div>
+  `;
 
-// 3. Speech Recognition Logic
-let recognition = null;
-let isListening = false;
-let isProcessing = false;
-let currentTranscript = "";
-let silenceTimer = null;
+  widgetContainer.appendChild(bubble);
+  widgetContainer.appendChild(micBtn);
+  root.appendChild(widgetContainer);
 
-if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
-  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-  recognition = new SpeechRecognition();
-  recognition.continuous = true;
-  recognition.interimResults = true;
-  recognition.lang = 'en-US';
+  // 3. Speech Recognition Logic
+  let recognition = null;
+  let isListening = false;
+  let isProcessing = false;
+  let currentTranscript = "";
+  let silenceTimer = null;
 
-  recognition.onresult = (event) => {
-    // Clear the silence timer because the user is still talking
-    if (silenceTimer) clearTimeout(silenceTimer);
+  if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    recognition = new SpeechRecognition();
+    recognition.continuous = true;
+    recognition.interimResults = true;
+    recognition.lang = 'en-US';
 
-    let interimTranscript = '';
-    let newlyFinal = '';
-    for (let i = event.resultIndex; i < event.results.length; i++) {
-      if (event.results[i].isFinal) {
-        newlyFinal += event.results[i][0].transcript;
+    recognition.onresult = (event) => {
+      // Clear the silence timer because the user is still talking
+      if (silenceTimer) clearTimeout(silenceTimer);
+
+      let interimTranscript = '';
+      let newlyFinal = '';
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        if (event.results[i].isFinal) {
+          newlyFinal += event.results[i][0].transcript;
+        } else {
+          interimTranscript += event.results[i][0].transcript;
+        }
+      }
+
+      if (newlyFinal) {
+        currentTranscript += newlyFinal + ' ';
+      }
+      
+      document.getElementById('lasminai-transcript').innerText = currentTranscript + interimTranscript;
+
+      // Start a 2-second silence timer. If they don't speak for 2 seconds, auto-submit.
+      silenceTimer = setTimeout(() => {
+        if (isListening) recognition.stop();
+      }, 2000);
+    };
+
+    recognition.onend = () => {
+      if (isProcessing) return;
+      if (currentTranscript.trim()) {
+        processVoiceCommand(currentTranscript.trim());
       } else {
-        interimTranscript += event.results[i][0].transcript;
+        setListeningState(false);
+      }
+    };
+
+    recognition.onerror = (event) => {
+      if (event.error === 'aborted' || event.error === 'no-speech' || event.error === 'not-allowed') {
+        return; // Ignore benign errors caused by manual stop, silence, or mic blocking
+      }
+      document.getElementById('lasminai-transcript').innerText = "Mic Error: " + event.error;
+      setTimeout(() => setListeningState(false), 2000);
+    };
+  }
+
+  function setListeningState(listening) {
+    isListening = listening;
+    if (silenceTimer) clearTimeout(silenceTimer);
+    
+    if (listening) {
+      currentTranscript = "";
+      micBtn.classList.add('listening');
+      micBtn.classList.remove('processing');
+      bubble.classList.add('visible');
+      document.getElementById('lasminai-status-text').innerText = "Listening...";
+      document.getElementById('lasminai-transcript').innerText = "Go ahead, I'm listening...";
+      try { recognition.start(); } catch(e) {}
+    } else {
+      micBtn.classList.remove('listening');
+      document.getElementById('lasminai-status-text').innerText = "";
+      try { recognition.stop(); } catch(e) {}
+      setTimeout(() => {
+        if (!isListening && !isProcessing) {
+          bubble.classList.remove('visible');
+        }
+      }, 3000);
+    }
+  }
+
+  let isDragging = false;
+  let startX, startY, initialX, initialY;
+
+  micBtn.addEventListener('mousedown', (e) => {
+    isDragging = false;
+    startX = e.clientX;
+    startY = e.clientY;
+    const rect = widgetContainer.getBoundingClientRect();
+    initialX = rect.left;
+    initialY = rect.top;
+
+    function onMouseMove(moveEvent) {
+      const dx = moveEvent.clientX - startX;
+      const dy = moveEvent.clientY - startY;
+      // Threshold to prevent micro-movements from counting as drags
+      if (Math.abs(dx) > 3 || Math.abs(dy) > 3) {
+        isDragging = true;
+        widgetContainer.style.right = 'auto'; 
+        widgetContainer.style.bottom = 'auto'; 
+        widgetContainer.style.left = `${initialX + dx}px`;
+        widgetContainer.style.top = `${initialY + dy}px`;
       }
     }
 
-    if (newlyFinal) {
-      currentTranscript += newlyFinal + ' ';
+    function onMouseUp() {
+      document.removeEventListener('mousemove', onMouseMove);
+      document.removeEventListener('mouseup', onMouseUp);
     }
-    
-    document.getElementById('lasminai-transcript').innerText = currentTranscript + interimTranscript;
 
-    // Start a 2-second silence timer. If they don't speak for 2 seconds, auto-submit.
-    silenceTimer = setTimeout(() => {
-      if (isListening) recognition.stop();
-    }, 2000);
-  };
+    document.addEventListener('mousemove', onMouseMove);
+    document.addEventListener('mouseup', onMouseUp);
+  });
 
-  recognition.onend = () => {
-    if (isProcessing) return;
-    if (currentTranscript.trim()) {
-      processVoiceCommand(currentTranscript.trim());
-    } else {
+  micBtn.addEventListener('click', (e) => {
+    if (isDragging) return;
+    if (!isListening && !isProcessing) {
+      setListeningState(true);
+    } else if (isListening) {
       setListeningState(false);
     }
-  };
-
-  recognition.onerror = (event) => {
-    if (event.error === 'aborted' || event.error === 'no-speech' || event.error === 'not-allowed') {
-      return; // Ignore benign errors caused by manual stop, silence, or mic blocking
-    }
-    document.getElementById('lasminai-transcript').innerText = "Mic Error: " + event.error;
-    setTimeout(() => setListeningState(false), 2000);
-  };
-}
-
-function setListeningState(listening) {
-  isListening = listening;
-  if (silenceTimer) clearTimeout(silenceTimer);
-  
-  if (listening) {
-    currentTranscript = "";
-    micBtn.classList.add('listening');
-    bubble.classList.add('visible');
-    document.getElementById('lasminai-status-text').innerText = '(Listening...)';
-    document.getElementById('lasminai-transcript').innerText = '...';
-    try { recognition?.start(); } catch(e) {}
-  } else {
-    micBtn.classList.remove('listening');
-    if (!isProcessing) {
-      bubble.classList.remove('visible');
-    }
-    recognition?.stop();
-  }
-}
-
-let isDragging = false;
-let startX, startY, initialX, initialY;
-
-micBtn.addEventListener('mousedown', (e) => {
-  isDragging = false;
-  startX = e.clientX;
-  startY = e.clientY;
-  const rect = widgetContainer.getBoundingClientRect();
-  initialX = rect.left;
-  initialY = rect.top;
-
-  function onMouseMove(moveEvent) {
-    const dx = moveEvent.clientX - startX;
-    const dy = moveEvent.clientY - startY;
-    // Threshold to prevent micro-movements from counting as drags
-    if (Math.abs(dx) > 3 || Math.abs(dy) > 3) {
-      isDragging = true;
-      widgetContainer.style.right = 'auto'; 
-      widgetContainer.style.bottom = 'auto'; 
-      widgetContainer.style.left = `${initialX + dx}px`;
-      widgetContainer.style.top = `${initialY + dy}px`;
-    }
-  }
-
-  function onMouseUp() {
-    document.removeEventListener('mousemove', onMouseMove);
-    document.removeEventListener('mouseup', onMouseUp);
-  }
-
-  document.addEventListener('mousemove', onMouseMove);
-  document.addEventListener('mouseup', onMouseUp);
-});
-
-micBtn.addEventListener('click', (e) => {
-  if (isDragging) {
-    e.preventDefault();
-    e.stopPropagation();
-    return;
-  }
-  
-  if (isListening) {
-    recognition?.stop(); // will trigger onend
-  } else {
-    setListeningState(true);
-  }
-});
-
-function simpleMarkdown(text) {
-  if (!text) return "";
-  let html = text
-    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-    .replace(/\*(.*?)\*/g, '<em>$1</em>')
-    .replace(/\n/g, '<br>');
-  html = html.replace(/(?:<br>|^)- (.*?)(?=<br>|$)/g, '<li>$1</li>');
-  return html;
-}
-
-async function processVoiceCommand(commandText) {
-  if (isProcessing) return;
-  isProcessing = true;
-  
-  setListeningState(false);
-  micBtn.classList.add('processing');
-  document.getElementById('lasminai-status-text').innerText = '(Thinking...)';
-
-  const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-  const localTime = new Date().toLocaleString('en-US', { timeZone: userTimezone });
-
-  safeSendMessage({
-    type: 'PROXY_FETCH',
-    url: '/api/voice/process',
-    method: 'POST',
-    body: {
-      message: commandText,
-      userTimezone,
-      localTime
-    }
-  }, (response) => {
-    if (response && response.success) {
-      if (response.data.success === false) {
-        document.getElementById('lasminai-transcript').innerText = "API Error: " + (response.data.error || response.data.message || "Something went wrong.");
-        resetState();
-        return;
-      }
-
-      document.getElementById('lasminai-transcript').innerHTML = simpleMarkdown(response.data.reply);
-      document.getElementById('lasminai-status-text').innerText = '';
-      
-      const textToSpeak = response.data.replyVoice || response.data.reply;
-      if (textToSpeak) {
-        const utterance = new SpeechSynthesisUtterance(textToSpeak);
-        
-        // macOS/Chrome bug: Sometimes onend is dropped. Force reset after 15s.
-        const fallbackTimeout = setTimeout(() => {
-          if (isProcessing) resetState();
-        }, 15000);
-
-        utterance.onend = () => {
-          clearTimeout(fallbackTimeout);
-          resetState();
-        };
-        utterance.onerror = () => {
-          clearTimeout(fallbackTimeout);
-          resetState();
-        };
-        
-        window.speechSynthesis.speak(utterance);
-      } else {
-        resetState();
-      }
-    } else {
-      document.getElementById('lasminai-transcript').innerText = "Error: " + (response?.error || "Failed to connect.");
-      resetState();
-    }
   });
-}
 
-function resetState() {
-  isProcessing = false;
-  micBtn.classList.remove('processing');
-  setTimeout(() => {
-    if (!isListening && !isProcessing) bubble.classList.remove('visible');
-  }, 5000);
-}
+  async function processVoiceCommand(command) {
+    isProcessing = true;
+    micBtn.classList.remove('listening');
+    micBtn.classList.add('processing');
+    document.getElementById('lasminai-status-text').innerText = "Processing...";
+    
+    safeSendMessage({ 
+      type: 'PROXY_FETCH', 
+      url: '/api/agent/process',
+      method: 'POST',
+      body: { command }
+    }, (response) => {
+      isProcessing = false;
+      micBtn.classList.remove('processing');
+      if (response && response.success) {
+        document.getElementById('lasminai-transcript').innerText = "Done!";
+        
+        // Handle Auto-fill JSON Command directly
+        if (response.data && response.data.action === 'AUTO_FILL') {
+          handleAutoFillResponse(response.data);
+        }
+      } else {
+        document.getElementById('lasminai-transcript').innerText = "Error: " + (response?.error || 'Unknown error');
+      }
+      setTimeout(() => setListeningState(false), 2000);
+    });
+  }
+} // End of siteSettings.voice check
 
-// 4. Reminder Blocker Logic
+// 4. Block Notifications & UI
 const blockerOverlay = document.createElement('div');
 blockerOverlay.className = 'lasminai-blocker-overlay';
 blockerOverlay.innerHTML = `
@@ -271,7 +235,7 @@ blockerOverlay.innerHTML = `
     </div>
   </div>
 `;
-root.appendChild(blockerOverlay);
+document.documentElement.appendChild(blockerOverlay);
 
 let activeReminderId = null;
 let mathChallenge = null;
@@ -298,7 +262,9 @@ const generateMathProblem = () => {
 
 
 // 4. Listen for Blocker commands from Background
-chrome.runtime.onMessage.addListener((message) => {
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (!siteSettings.reminders) return; // Ignore blocker logic if reminders are disabled
+
   if (message.type === 'SHOW_BLOCKER' && message.reminders && message.reminders.length > 0) {
     if (window.location.href.includes('localhost:5174') || window.location.href.includes('localhost:5050') || window.location.href.includes('lasminai.vercel.app')) {
       return; // Do not show the raw extension blocker over the beautiful native web app dialog
@@ -527,3 +493,5 @@ async function handleAutofill() {
     setTimeout(() => toast.remove(), 4000);
   });
 }
+
+}); // End of excludedDomains callback
