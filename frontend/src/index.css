@@ -63,3 +63,12 @@
   font-family: monospace; 
   font-size: 0.9em;
 }
+
+/* React Calendar Heatmap fixes */
+.react-calendar-heatmap text {
+  font-size: 10px !important;
+  fill: #9ca3af !important;
+}
+.dark .react-calendar-heatmap text {
+  fill: #6b7280 !important;
+}

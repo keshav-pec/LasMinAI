@@ -10,6 +10,7 @@ import RemindersAssistant from './components/RemindersAssistant';
 import GlobalVoiceAssistant from './components/GlobalVoiceAssistant';
 import DummyRegistration from './pages/DummyRegistration';
 import Settings from './pages/Settings';
+import ProfileDashboard from './pages/ProfileDashboard';
 
 const ProtectedRoute = ({ isAuthenticated, children }) => {
   if (isAuthenticated === null) return null;
@@ -88,6 +89,14 @@ export default function App() {
             element={
               <ProtectedRoute isAuthenticated={isAuthenticated}>
                 <Settings userData={userData} />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/profile" 
+            element={
+              <ProtectedRoute isAuthenticated={isAuthenticated}>
+                <ProfileDashboard userData={userData} />
               </ProtectedRoute>
             } 
           />

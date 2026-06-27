@@ -13,6 +13,7 @@ const voiceRoutes = require('./routes/voiceRoutes');
 const autofillRoutes = require('./routes/autofillRoutes');
 const userRoutes = require('./routes/userRoutes');
 const reportRoutes = require('./routes/reportRoutes');
+const habitRoutes = require('./routes/habitRoutes');
 const { startEmailWorker } = require('./services/emailWorker');
 
 const app = express();
@@ -53,6 +54,8 @@ const generalApiLimiter = rateLimit({
 
 app.use('/api/tasks', taskRoutes);
 app.use('/api/auth', authRoutes);
+app.use('/api/users', userRoutes);
+app.use('/api/cron', require('./routes/cronRoutes'));
 app.use('/api/chat', aiLimiter, chatRoutes);
 app.use('/api/workstation', aiLimiter, workstationRoutes);
 app.use('/api/reminders/chat', aiLimiter); // Strict rate limit for AI
@@ -61,6 +64,7 @@ app.use('/api/autofill', aiLimiter, autofillRoutes);
 app.use('/api/reminders', generalApiLimiter, reminderRoutes); // General limit for CRUD
 app.use('/api/user', generalApiLimiter, userRoutes);
 app.use('/api/reports', generalApiLimiter, reportRoutes);
+app.use('/api/habits', generalApiLimiter, habitRoutes);
 
 // Basic Health Check Route
 app.get('/api/health', (req, res) => {

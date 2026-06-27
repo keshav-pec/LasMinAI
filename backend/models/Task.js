@@ -28,8 +28,8 @@ const TaskSchema = new mongoose.Schema({
     type: Number,
     required: true,
     min: 1,
-    max: 10,
-    default: 5, // E: Estimated hours to complete
+    max: 24,
+    default: 2, // E: Estimated hours to complete
   },
   status: {
     type: String,
@@ -43,6 +43,15 @@ const TaskSchema = new mongoose.Schema({
   digestSent: {
     type: Boolean,
     default: false,
+  },
+  habitId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Habit',
+    default: null,
+  },
+  completedAt: {
+    type: Date,
+    default: null,
   }
 }, { timestamps: true });
 

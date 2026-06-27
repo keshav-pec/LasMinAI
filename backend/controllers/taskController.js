@@ -65,13 +65,42 @@ exports.updateTaskStatus = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Invalid status' });
     }
 
-    const task = await Task.findOneAndUpdate(
-      { _id: id, userId: req.user.id },
-      { status },
-      { new: true }
-    );
-
+    const task = await Task.findOne({ _id: id, userId: req.user.id });
     if (!task) return res.status(404).json({ success: false, message: 'Task not found' });
+
+    const wasCompleted = task.status === 'completed';
+    task.status = status;
+
+    if (status === 'completed' && !wasCompleted) {
+      task.completedAt = new Date();
+      
+      if (task.habitId) {
+        const Habit = require('../models/Habit');
+        const habit = await Habit.findById(task.habitId);
+        if (habit) {
+          habit.totalCompleted += 1;
+          habit.streak += 1;
+          if (habit.streak > habit.bestStreak) {
+            habit.bestStreak = habit.streak;
+          }
+          await habit.save();
+        }
+      }
+    } else if (status !== 'completed' && wasCompleted) {
+      task.completedAt = null;
+      
+      if (task.habitId) {
+        const Habit = require('../models/Habit');
+        const habit = await Habit.findById(task.habitId);
+        if (habit) {
+          habit.totalCompleted = Math.max(0, habit.totalCompleted - 1);
+          habit.streak = Math.max(0, habit.streak - 1);
+          await habit.save();
+        }
+      }
+    }
+
+    await task.save();
 
     res.status(200).json({ success: true, data: task });
   } catch (error) {

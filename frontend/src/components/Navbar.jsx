@@ -165,7 +165,10 @@ export default function Navbar({ userData, setUserData }) {
                     <p className="text-sm font-semibold text-neutral-900 dark:text-white truncate">{userData.name}</p>
                   </div>
                   <div className="p-2">
-                    <Link to="/settings" onClick={() => setIsMenuOpen(false)} className="w-full flex items-center gap-3 px-3 py-2 text-sm text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-lg transition-colors text-left">
+                    <Link to="/profile" onClick={() => setIsMenuOpen(false)} className="w-full flex items-center gap-3 px-3 py-2 text-sm text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-lg transition-colors text-left">
+                      <User className="w-4 h-4" /> Profile
+                    </Link>
+                    <Link to="/settings" onClick={() => setIsMenuOpen(false)} className="w-full flex items-center gap-3 px-3 py-2 text-sm text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-lg transition-colors text-left mt-1">
                       <Settings className="w-4 h-4" /> Settings
                     </Link>
                     <button onClick={handleLogout} className="w-full flex items-center gap-3 px-3 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition-colors text-left mt-1">
