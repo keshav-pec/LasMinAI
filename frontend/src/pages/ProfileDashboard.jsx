@@ -22,10 +22,14 @@ export default function ProfileDashboard({ userData }) {
 
   // Auto-scroll the heatmap to the current month (right side) on mobile
   useEffect(() => {
-    if (scrollContainerRef.current) {
-      scrollContainerRef.current.scrollLeft = scrollContainerRef.current.scrollWidth;
+    if (isHeatmapExpanded) {
+      setTimeout(() => {
+        if (scrollContainerRef.current) {
+          scrollContainerRef.current.scrollLeft = scrollContainerRef.current.scrollWidth;
+        }
+      }, 50);
     }
-  }, [heatmapData, activeTab]);
+  }, [heatmapData, activeTab, isHeatmapExpanded]);
 
   const [newHabit, setNewHabit] = useState({
     title: '',
