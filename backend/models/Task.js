@@ -21,13 +21,17 @@ const TaskSchema = new mongoose.Schema({
     type: Number,
     required: true,
     min: 1,
-    max: 10,
-    default: 5, // C: 1 (Easy) to 10 (Brain-melting)
+    max: 5,
+    default: 3,
+  },
+  timezone: {
+    type: String,
+    default: 'UTC',
   },
   technicalEffort: {
     type: Number,
     required: true,
-    min: 1,
+    min: 0.1,
     max: 24,
     default: 2, // E: Estimated hours to complete
   },
@@ -43,6 +47,14 @@ const TaskSchema = new mongoose.Schema({
   digestSent: {
     type: Boolean,
     default: false,
+  },
+  digestFailed: {
+    type: Boolean,
+    default: false,
+  },
+  digestRetryCount: {
+    type: Number,
+    default: 0,
   },
   habitId: {
     type: mongoose.Schema.Types.ObjectId,

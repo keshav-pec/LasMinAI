@@ -16,6 +16,8 @@ export default function ProfileDashboard({ userData }) {
   const [isLoading, setIsLoading] = useState(true);
   const [isCreating, setIsCreating] = useState(false);
   const [expandedHabits, setExpandedHabits] = useState({});
+  const [isHeatmapExpanded, setIsHeatmapExpanded] = useState(false);
+  const [isCreateExpanded, setIsCreateExpanded] = useState(false);
   const scrollContainerRef = useRef(null);
 
   // Auto-scroll the heatmap to the current month (right side) on mobile
@@ -148,100 +150,149 @@ export default function ProfileDashboard({ userData }) {
                 <div className="space-y-8">
                   
                   {/* Heatmap Section */}
-                  <div className="bg-neutral-50 dark:bg-neutral-800/20 p-5 sm:p-6 rounded-xl border border-neutral-100 dark:border-neutral-800/60">
-                    <h3 className="text-sm font-semibold text-neutral-800 dark:text-neutral-200 mb-5 uppercase tracking-wider flex items-center gap-2">
-                      <div className="w-1.5 h-4 bg-emerald-500 rounded-full"></div>
-                      Consistency Heatmap
-                    </h3>
-                    <div 
-                      ref={scrollContainerRef}
-                      className="w-full overflow-x-auto pb-4 gemini-scrollbar"
+                  <div className="bg-neutral-50 dark:bg-neutral-800/20 p-4 sm:p-5 rounded-xl border border-neutral-100 dark:border-neutral-800/60 transition-colors hover:border-neutral-200 dark:hover:border-neutral-700">
+                    <button 
+                      onClick={() => setIsHeatmapExpanded(!isHeatmapExpanded)}
+                      className="w-full flex items-center justify-between group"
                     >
-                      <div className="min-w-[700px] max-w-[900px] mx-auto text-xs px-2">
-                        <CalendarHeatmap
-                          startDate={subDays(new Date(), 365)}
-                          endDate={new Date()}
-                          values={heatmapData}
-                          classForValue={(value) => {
-                            if (!value) return 'fill-neutral-200 dark:fill-neutral-800';
-                            if (value.count === 1) return 'fill-emerald-200 dark:fill-emerald-900/50';
-                            if (value.count === 2) return 'fill-emerald-300 dark:fill-emerald-800/60';
-                            if (value.count === 3) return 'fill-emerald-400 dark:fill-emerald-700/80';
-                            return 'fill-emerald-500 dark:fill-emerald-500';
-                          }}
-                          tooltipDataAttrs={(value) => {
-                            if (!value || !value.date) {
-                              return {
-                                'data-tooltip-id': 'heatmap-tooltip',
-                                'data-tooltip-content': 'No habits completed'
-                              };
-                            }
-                            return {
-                              'data-tooltip-id': 'heatmap-tooltip',
-                              'data-tooltip-content': `${value.count || 0} habits completed on ${value.date}`
-                            };
-                          }}
-                          showWeekdayLabels={true}
-                        />
-                        <Tooltip id="heatmap-tooltip" className="z-50 !bg-neutral-900 !text-white !rounded-lg !text-xs !font-medium !px-3 !py-1.5 shadow-xl" />
+                      <div className="flex items-center gap-4">
+                        <h3 className="text-sm font-semibold text-neutral-800 dark:text-neutral-200 uppercase tracking-wider flex items-center gap-2">
+                          <div className="w-1.5 h-4 bg-emerald-500 rounded-full"></div>
+                          Consistency Heatmap
+                        </h3>
+                        <div className="flex items-center gap-1.5 px-2.5 py-1 bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 rounded-md text-xs font-bold">
+                          <Flame className="w-3.5 h-3.5" />
+                          {habits.reduce((acc, h) => acc + h.streak, 0)}
+                        </div>
                       </div>
-                    </div>
+                      <div className="text-neutral-400 group-hover:text-neutral-600 dark:group-hover:text-neutral-300 transition-colors">
+                        {isHeatmapExpanded ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
+                      </div>
+                    </button>
+                    
+                    <AnimatePresence>
+                      {isHeatmapExpanded && (
+                        <motion.div
+                          initial={{ height: 0, opacity: 0 }}
+                          animate={{ height: 'auto', opacity: 1 }}
+                          exit={{ height: 0, opacity: 0 }}
+                          className="overflow-hidden"
+                        >
+                          <div 
+                            ref={scrollContainerRef}
+                            className="w-full overflow-x-auto mt-5 pt-2 pb-1 gemini-scrollbar"
+                          >
+                            <div className="min-w-[700px] max-w-[900px] mx-auto text-xs px-2">
+                              <CalendarHeatmap
+                                startDate={subDays(new Date(), 365)}
+                                endDate={new Date()}
+                                values={heatmapData}
+                                classForValue={(value) => {
+                                  if (!value) return 'fill-neutral-200 dark:fill-neutral-800';
+                                  if (value.count === 1) return 'fill-emerald-200 dark:fill-emerald-900/50';
+                                  if (value.count === 2) return 'fill-emerald-300 dark:fill-emerald-800/60';
+                                  if (value.count === 3) return 'fill-emerald-400 dark:fill-emerald-700/80';
+                                  return 'fill-emerald-500 dark:fill-emerald-500';
+                                }}
+                                tooltipDataAttrs={(value) => {
+                                  if (!value || !value.date) {
+                                    return {
+                                      'data-tooltip-id': 'heatmap-tooltip',
+                                      'data-tooltip-content': 'No habits completed'
+                                    };
+                                  }
+                                  return {
+                                    'data-tooltip-id': 'heatmap-tooltip',
+                                    'data-tooltip-content': `${value.count || 0} habits completed on ${value.date}`
+                                  };
+                                }}
+                                showWeekdayLabels={true}
+                              />
+                              <Tooltip id="heatmap-tooltip" className="z-50 !bg-neutral-900 !text-white !rounded-lg !text-xs !font-medium !px-3 !py-1.5 shadow-xl" />
+                            </div>
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
                   </div>
 
                   {/* Add New Habit Form */}
-                  <div className="bg-neutral-50 dark:bg-neutral-800/20 p-5 sm:p-6 rounded-xl border border-neutral-100 dark:border-neutral-800/60">
-                    <h3 className="text-sm font-semibold text-neutral-800 dark:text-neutral-200 mb-5 uppercase tracking-wider flex items-center gap-2">
-                      <div className="w-1.5 h-4 bg-blue-500 rounded-full"></div>
-                      Create New Habit
-                    </h3>
-                    <form onSubmit={handleCreateHabit} className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <div className="sm:col-span-2">
-                        <input 
-                          type="text" required placeholder="Habit Title (e.g. Read 20 pages)" 
-                          value={newHabit.title} onChange={e => setNewHabit({...newHabit, title: e.target.value})}
-                          className="w-full px-4 py-3 bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:text-neutral-100"
-                        />
+                  <div className="bg-neutral-50 dark:bg-neutral-800/20 p-4 sm:p-5 rounded-xl border border-neutral-100 dark:border-neutral-800/60 transition-colors hover:border-neutral-200 dark:hover:border-neutral-700">
+                    <button 
+                      onClick={() => setIsCreateExpanded(!isCreateExpanded)}
+                      className="w-full flex items-center justify-between group"
+                    >
+                      <h3 className="text-sm font-semibold text-neutral-800 dark:text-neutral-200 uppercase tracking-wider flex items-center gap-2">
+                        <div className="w-1.5 h-4 bg-blue-500 rounded-full"></div>
+                        Create New Habit
+                      </h3>
+                      <div className="text-neutral-400 group-hover:text-neutral-600 dark:group-hover:text-neutral-300 transition-colors">
+                        {isCreateExpanded ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
                       </div>
-                      <div className="sm:col-span-2">
-                        <input 
-                          type="text" placeholder="Short Description (Optional)" 
-                          value={newHabit.description} onChange={e => setNewHabit({...newHabit, description: e.target.value})}
-                          className="w-full px-4 py-3 bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:text-neutral-100"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-xs text-neutral-500 mb-1">Frequency</label>
-                        <select 
-                          value={newHabit.frequency} onChange={e => setNewHabit({...newHabit, frequency: e.target.value})}
-                          className="w-full px-4 py-3 bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:text-neutral-100"
+                    </button>
+                    
+                    <AnimatePresence>
+                      {isCreateExpanded && (
+                        <motion.div
+                          initial={{ height: 0, opacity: 0 }}
+                          animate={{ height: 'auto', opacity: 1 }}
+                          exit={{ height: 0, opacity: 0 }}
+                          className="overflow-hidden"
                         >
-                          <option value="daily">Daily</option>
-                          <option value="weekly">Weekly (Mondays)</option>
-                        </select>
-                      </div>
-                      <div>
-                        <label className="block text-xs text-neutral-500 mb-1">Daily Deadline Time</label>
-                        <input 
-                          type="time" required
-                          value={newHabit.deadlineTime} onChange={e => setNewHabit({...newHabit, deadlineTime: e.target.value})}
-                          className="w-full px-4 py-3 bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:text-neutral-100 dark:[color-scheme:dark]"
-                        />
-                      </div>
-                      <div className="sm:col-span-2 flex justify-end mt-2">
-                        <button 
-                          type="submit" disabled={isCreating}
-                          className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white text-sm font-medium rounded-lg transition-colors shadow-sm"
-                        >
-                          {isCreating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
-                          Add Habit
-                        </button>
-                      </div>
-                    </form>
+                          <form onSubmit={handleCreateHabit} className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-5">
+                            <div className="sm:col-span-2">
+                              <input 
+                                type="text" required placeholder="Habit Title (e.g. Read 20 pages)" 
+                                value={newHabit.title} onChange={e => setNewHabit({...newHabit, title: e.target.value})}
+                                className="w-full px-4 py-3 bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:text-neutral-100"
+                              />
+                            </div>
+                            <div className="sm:col-span-2">
+                              <input 
+                                type="text" placeholder="Short Description (Optional)" 
+                                value={newHabit.description} onChange={e => setNewHabit({...newHabit, description: e.target.value})}
+                                className="w-full px-4 py-3 bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:text-neutral-100"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-xs text-neutral-500 mb-1">Frequency</label>
+                              <select 
+                                value={newHabit.frequency} onChange={e => setNewHabit({...newHabit, frequency: e.target.value})}
+                                className="w-full px-4 py-3 bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:text-neutral-100"
+                              >
+                                <option value="daily">Daily</option>
+                                <option value="weekly">Weekly (Mondays)</option>
+                              </select>
+                            </div>
+                            <div>
+                              <label className="block text-xs text-neutral-500 mb-1">Daily Deadline Time</label>
+                              <input 
+                                type="time" required
+                                value={newHabit.deadlineTime} onChange={e => setNewHabit({...newHabit, deadlineTime: e.target.value})}
+                                className="w-full px-4 py-3 bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:text-neutral-100 dark:[color-scheme:dark]"
+                              />
+                            </div>
+                            <div className="sm:col-span-2 flex justify-end mt-2">
+                              <button 
+                                type="submit" disabled={isCreating}
+                                className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white text-sm font-medium rounded-lg transition-colors shadow-sm"
+                              >
+                                {isCreating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
+                                Add Habit
+                              </button>
+                            </div>
+                          </form>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
                   </div>
 
                   {/* Habit List Accordions */}
                   <div>
-                    <h3 className="text-xl font-semibold text-neutral-900 dark:text-white mb-4">Your Active Habits</h3>
+                    <h3 className="text-sm font-semibold text-neutral-800 dark:text-neutral-200 mb-5 pl-4 sm:pl-5 uppercase tracking-wider flex items-center gap-2">
+                      <div className="w-1.5 h-4 bg-orange-500 rounded-full"></div>
+                      Your Active Habits
+                    </h3>
                     {isLoading ? (
                       <div className="flex items-center justify-center p-8">
                         <Loader2 className="w-8 h-8 animate-spin text-blue-500" />

@@ -28,7 +28,7 @@ const HabitSchema = new mongoose.Schema({
   },
   complexity: {
     type: Number,
-    default: 5,
+    default: 3,
   },
   technicalEffort: {
     type: Number,

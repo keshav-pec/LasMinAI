@@ -5,7 +5,7 @@ const { getSortedPendingTasks } = require('../services/taskService');
 // Create a new task and compute its initial priority score
 exports.createTask = async (req, res) => {
   try {
-    const { title, description, deadline, complexity, technicalEffort } = req.body;
+    const { title, description, deadline, complexity, technicalEffort, timezone } = req.body;
 
     // Validate inputs
     if (!title || typeof title !== 'string' || title.trim().length === 0 || title.length > 200) {
@@ -14,11 +14,11 @@ exports.createTask = async (req, res) => {
     if (!deadline || isNaN(new Date(deadline).getTime())) {
       return res.status(400).json({ success: false, message: 'Valid deadline is required.' });
     }
-    if (complexity && (typeof complexity !== 'number' || complexity < 1 || complexity > 10)) {
-      return res.status(400).json({ success: false, message: 'Complexity must be a number between 1 and 10.' });
+    if (complexity && (typeof complexity !== 'number' || complexity < 1 || complexity > 5)) {
+      return res.status(400).json({ success: false, message: 'Complexity must be a number between 1 and 5.' });
     }
-    if (technicalEffort && (typeof technicalEffort !== 'number' || technicalEffort < 1 || technicalEffort > 10)) {
-      return res.status(400).json({ success: false, message: 'Technical Effort must be a number between 1 and 10.' });
+    if (technicalEffort && (typeof technicalEffort !== 'number' || technicalEffort <= 0 || technicalEffort > 24)) {
+      return res.status(400).json({ success: false, message: 'Technical Effort must be a positive number up to 24.' });
     }
 
     // Calculate score
@@ -29,6 +29,7 @@ exports.createTask = async (req, res) => {
       title,
       description,
       deadline,
+      timezone: timezone || 'UTC',
       complexity,
       technicalEffort,
       priorityScore

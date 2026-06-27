@@ -47,7 +47,7 @@ const workstationSchema = {
           taskTitle: { type: Type.STRING },
           startTime: { type: Type.STRING, description: "ISO 8601 string for Google Calendar start time" },
           endTime: { type: Type.STRING, description: "ISO 8601 string for Google Calendar end time" },
-          focusModeRequired: { type: Type.BOOLEAN, description: "True if the task has a complexity > 5" }
+          focusModeRequired: { type: Type.BOOLEAN, description: "True if the task has a complexity >= 4" }
         },
         required: ["taskId", "taskTitle", "startTime", "endTime", "focusModeRequired"]
       }
@@ -85,8 +85,7 @@ const parseWorkstationMessage = async (userMessage, history = [], currentTasks =
       6. For Pomodoro, you can schedule 25-minute blocks with 5-minute breaks.
       7. ALWAYS include the exact '_id' of the task in 'taskId' for every calendar event.
       8. Keep your tone highly motivating, professional, and use Markdown for readability.
-      9. When discussing a task's 'complexity', natively translate its 1-10 integer into human-friendly terms (e.g., 1-2="very easy", 5="normal", 7-8="hard", 10="very complex"). Do not just quote raw numbers.
-      10. CRITICAL: NEVER use or mention the word "complexity" in your conversational reply. The complexity metric is strictly for internal mathematical calculations only. Do not attempt to describe it or mention terms like "Normal complexity" or "Hard complexity".
+      9. CRITICAL: NEVER use or mention the word "complexity" in your conversational reply. The complexity metric is strictly for internal mathematical calculations only. Do not attempt to describe it.
       11. ${COMMON_FORMATTING_RULES}
       12. CRITICAL TIME FORMATTING: The 'startTime' and 'endTime' ISO strings MUST accurately reflect the ${userTimezone} timezone. Either calculate and append the exact correct offset (e.g., '+05:30' for IST) OR perform the exact math to convert the local time to true UTC and append 'Z'. Do NOT lazily append 'Z' to a local time without converting it, as this causes a severe timezone bug.
     `;
@@ -142,8 +141,8 @@ const intentSchema = {
         title: { type: Type.STRING, description: "A concise title for the task. Do NOT include dates here." },
         description: { type: Type.STRING, description: "Detailed helpful context, instructions, or elaboration provided by the user. If they provide none, leave this empty." },
         deadline: { type: Type.STRING, description: "ISO 8601 exact date string. NEVER OMIT THIS FIELD. Calculate relative times (e.g. 'today' -> 11:59 PM today)." },
-        complexity: { type: Type.NUMBER, description: "Scale of 1-10 based on user's feeling (1=very easy, 2=easy, 5=normal, 7-8=hard, 10=complex). You MUST intelligently extract this." },
-        technicalEffort: { type: Type.NUMBER, description: "Estimated hours to complete. Default to 2 if not specified." }
+        complexity: { type: Type.NUMBER, description: "Scale of 1-5 based on user's feeling (1=very easy, 2=easy, 3=normal, 4=hard, 5=very hard). You MUST intelligently extract this." },
+        technicalEffort: { type: Type.NUMBER, description: "Estimated time in hours required. Supports floats (e.g., 40 mins = 0.67). Default 2." }
       },
       required: ["title", "deadline"]
     },
@@ -155,8 +154,8 @@ const intentSchema = {
         title: { type: Type.STRING },
         description: { type: Type.STRING },
         deadline: { type: Type.STRING },
-        complexity: { type: Type.NUMBER, description: "Scale of 1-10 based on user's feeling (1=very easy, 2=easy, 5=normal, 7-8=hard, 10=complex)." },
-        technicalEffort: { type: Type.NUMBER },
+        complexity: { type: Type.NUMBER, description: "Scale of 1-5 based on user's feeling (1=very easy, 2=easy, 3=normal, 4=hard, 5=very hard)." },
+        technicalEffort: { type: Type.NUMBER, description: "Estimated time in hours required. Supports floats (e.g., 40 mins = 0.67)." },
         status: { type: Type.STRING, enum: ["pending", "completed", "overdue"] }
       },
       required: ["taskIdToUpdate"]
@@ -437,7 +436,7 @@ const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
  * Generates an HTML Email Digest using Google Search Grounding for context.
  * Implements Exponential Backoff and Graceful Fallback to non-grounding if quota is exhausted.
  */
-const generateTaskDigestMaterial = async (tasks, retries = 3, backoffDelay = 2000) => {
+const generateTaskDigestMaterial = async (tasks, userTimezone = 'UTC', retries = 3, backoffDelay = 2000) => {
   try {
     const systemPrompt = `
       You are LasMinAI's helpful Task Preparation Assistant. 
@@ -454,7 +453,8 @@ const generateTaskDigestMaterial = async (tasks, retries = 3, backoffDelay = 200
       4. As an added bonus, encode that exact prompt into a clickable Perplexity or ChatGPT URL (e.g., <a href="https://www.perplexity.ai/search?q=YOUR+URL+ENCODED+PROMPT">Ask AI instantly</a>).
       5. The output MUST be raw HTML (no markdown code blocks, just raw HTML). 
       6. Use inline CSS. Make it look modern, clean, and inspiring (e.g., sans-serif fonts, soft colors, distinct sections for each task).
-      7. Include a brief encouraging message at the top.
+      6. Include a brief encouraging message at the top.
+      7. CRITICAL: When writing times, ensure they are strictly referenced in the user's localized time zone (${userTimezone}).
     `;
 
     const config = {
@@ -480,7 +480,7 @@ const generateTaskDigestMaterial = async (tasks, retries = 3, backoffDelay = 200
       if (retries > 0) {
         console.log(`⏳ Rate Limit Hit. Backing off for ${backoffDelay}ms... (${retries} retries left)`);
         await sleep(backoffDelay);
-        return await generateTaskDigestMaterial(tasks, retries - 1, backoffDelay * 2);
+        return await generateTaskDigestMaterial(tasks, userTimezone, retries - 1, backoffDelay * 2);
       }
     }
 

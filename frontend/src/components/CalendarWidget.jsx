@@ -61,11 +61,10 @@ const CalendarWidget = memo(function CalendarWidget({ tasks = [], handleToggleCo
     });
   }, [tasks, selectedDate]);
 
-  // Calculate color based on priority
   const getPriorityColor = (score) => {
-    if (score > 80) return { bg: 'bg-red-500/10 dark:bg-red-900/20', text: 'text-red-700 dark:text-red-400', dot: 'bg-red-500', border: 'border-red-500/20' };
-    if (score > 30) return { bg: 'bg-purple-500/10 dark:bg-purple-900/20', text: 'text-purple-700 dark:text-purple-400', dot: 'bg-purple-500', border: 'border-purple-500/20' };
-    return { bg: 'bg-blue-500/10 dark:bg-blue-900/20', text: 'text-blue-700 dark:text-blue-400', dot: 'bg-blue-500', border: 'border-blue-500/20' };
+    if (score > 75) return { bg: 'bg-amber-500/10 dark:bg-amber-900/20', text: 'text-amber-700 dark:text-amber-400', dot: 'bg-amber-500', border: 'border-amber-500/20' };
+    if (score > 25) return { bg: 'bg-blue-500/10 dark:bg-blue-900/20', text: 'text-blue-700 dark:text-blue-400', dot: 'bg-blue-500', border: 'border-blue-500/20' };
+    return { bg: 'bg-neutral-200/50 dark:bg-neutral-800/50', text: 'text-neutral-800 dark:text-white', dot: 'bg-neutral-800 dark:bg-white', border: 'border-neutral-300/50 dark:border-neutral-700/50' };
   };
 
   const handleExport = async () => {
@@ -112,7 +111,7 @@ const CalendarWidget = memo(function CalendarWidget({ tasks = [], handleToggleCo
           <button 
             onClick={handleExport} 
             disabled={isExporting || filteredTasks.length === 0}
-            className={`p-2 rounded-xl transition-colors shadow-sm flex items-center justify-center cursor-pointer ${isExporting ? 'bg-neutral-100 dark:bg-neutral-800' : 'bg-blue-500/10 hover:bg-blue-500/20 text-blue-600 dark:text-blue-400'} disabled:opacity-50`}
+            className={`p-2 rounded-xl transition-colors shadow-sm flex items-center justify-center cursor-pointer ${isExporting ? 'bg-neutral-100 dark:bg-neutral-800' : 'bg-neutral-200/50 dark:bg-neutral-800 hover:bg-neutral-200 dark:hover:bg-neutral-700 text-neutral-800 dark:text-white'} disabled:opacity-50`}
             title="Export to Google Docs"
           >
             {isExporting ? <Loader2 className="w-5 h-5 animate-spin text-neutral-500" /> : <FileDown className="w-5 h-5" />}
@@ -158,8 +157,11 @@ const CalendarWidget = memo(function CalendarWidget({ tasks = [], handleToggleCo
                     <div className={`p-4 rounded-xl border transition-all ${task.status === 'completed' ? 'opacity-50 grayscale' : ''} ${colors.bg} ${colors.border} backdrop-blur-sm`}>
                       <div className="flex items-start justify-between gap-3">
                         <div className="w-full">
-                          <h3 className={`font-semibold mb-1 text-sm ${colors.text} leading-tight ${task.status === 'completed' ? 'line-through' : ''}`}>
-                            {task.title}
+                          <h3 className={`font-semibold mb-1 text-sm flex items-center gap-1.5 flex-wrap ${colors.text} leading-tight ${task.status === 'completed' ? 'line-through' : ''}`}>
+                            <span className="break-words">{task.title}</span>
+                            <span className="opacity-70 text-xs font-normal whitespace-nowrap">
+                              ({new Date(task.deadline).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: true })})
+                            </span>
                           </h3>
                           <div className="flex items-center gap-4 mt-2 text-xs opacity-80">
                             <span className="flex items-center gap-1 font-medium text-neutral-600 dark:text-neutral-400">

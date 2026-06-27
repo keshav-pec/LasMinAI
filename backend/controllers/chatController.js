@@ -43,13 +43,14 @@ exports.handleChatMessage = async (req, res) => {
       }
       
       if (title) {
-        const priorityScore = calculatePriorityScore(deadline, complexity || 5, technicalEffort || 2);
+        const priorityScore = calculatePriorityScore(deadline, complexity || 3, technicalEffort || 2);
         const newTask = new Task({
           userId: req.user.id,
           title,
           description: description || "",
           deadline,
-          complexity: complexity || 5,
+          timezone: userTimezone || 'UTC',
+          complexity: complexity || 3,
           technicalEffort: technicalEffort || 2,
           priorityScore
         });

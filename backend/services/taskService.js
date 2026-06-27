@@ -21,7 +21,13 @@ const getSortedPendingTasks = async (userId) => {
     };
   });
 
-  return dynamicallySortedTasks.sort((a, b) => b.priorityScore - a.priorityScore);
+  return dynamicallySortedTasks.sort((a, b) => {
+    if (b.priorityScore !== a.priorityScore) {
+      return b.priorityScore - a.priorityScore;
+    }
+    // If scores are tied (e.g., both are 100), sort by earliest deadline first
+    return new Date(a.deadline) - new Date(b.deadline);
+  });
 };
 
 module.exports = { getSortedPendingTasks };

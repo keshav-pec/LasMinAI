@@ -52,6 +52,7 @@ router.post('/generate-habits', async (req, res) => {
         title: habit.title,
         description: habit.description || 'Recurring Habit',
         deadline: deadline,
+        timezone: userTimezone,
         complexity: habit.complexity,
         technicalEffort: habit.technicalEffort,
         status: 'pending'

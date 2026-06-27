@@ -2,8 +2,6 @@ const Task = require('../models/Task');
 const { generateTaskDigestMaterial } = require('./geminiService');
 const { sendGmailDigest } = require('./gmailService');
 
-// 30 minutes in milliseconds
-const THIRTY_MINUTES_MS = 30 * 60 * 1000;
 // 2 hours in milliseconds for the digest lookahead
 const TWO_HOURS_MS = 2 * 60 * 60 * 1000;
 
@@ -16,8 +14,12 @@ const startEmailWorker = () => {
     try {
       const now = Date.now();
       
-      // 1. Fetch all pending tasks that haven't had a digest sent yet
-      const activeTasks = await Task.find({ status: 'pending', digestSent: false });
+      // 1. Fetch all pending tasks that haven't had a digest sent yet (and haven't failed 3 times)
+      const activeTasks = await Task.find({ 
+        status: 'pending', 
+        digestSent: false,
+        digestRetryCount: { $lt: 3 }
+      });
       
       if (!activeTasks.length) return;
 
@@ -40,8 +42,8 @@ const startEmailWorker = () => {
           
           const timeUntilStartMs = startTimeMs - now;
           
-          // If the start time is 30 minutes away OR LESS (meaning it's imminent or just started)
-          if (timeUntilStartMs <= THIRTY_MINUTES_MS && timeUntilStartMs > -TWO_HOURS_MS) {
+          // If the start time has arrived (meaning it is exactly deadline - technicalEffort)
+          if (timeUntilStartMs <= 0 && timeUntilStartMs > -TWO_HOURS_MS) {
             shouldTriggerDigest = true;
             break;
           }
@@ -60,25 +62,29 @@ const startEmailWorker = () => {
             
             const timeUntilStartMs = startTimeMs - now;
             
-            // If the task starts anytime between "Right Now" and "Next 2.5 hours"
-            if (timeUntilStartMs > -TWO_HOURS_MS && timeUntilStartMs <= (TWO_HOURS_MS + THIRTY_MINUTES_MS)) {
+            // If the task starts anytime between "Right Now" and "Next 2 hours"
+            if (timeUntilStartMs > -TWO_HOURS_MS && timeUntilStartMs <= TWO_HOURS_MS) {
               digestTasks.push(task);
             }
           }
           
           if (digestTasks.length > 0) {
             console.log(`🤖 Requesting HTML Material from Gemini for ${digestTasks.length} tasks...`);
-            // 4. Generate the Grounded Email Body
-            const htmlBody = await generateTaskDigestMaterial(digestTasks);
+            // 4. Generate the Grounded Email Body using the first task's timezone
+            const userTimezone = digestTasks[0].timezone || 'UTC';
+            const htmlBody = await generateTaskDigestMaterial(digestTasks, userTimezone);
             
             // 5. Send it via their Native Gmail
             const sentSuccess = await sendGmailDigest(userId, htmlBody);
             
-            // 6. Mark all bundled tasks as sent so they aren't spammed
+            // 6. Handle success or dead-letter queue retries
+            const taskIds = digestTasks.map(t => t._id);
             if (sentSuccess) {
-              const taskIds = digestTasks.map(t => t._id);
-              await Task.updateMany({ _id: { $in: taskIds } }, { $set: { digestSent: true } });
+              await Task.updateMany({ _id: { $in: taskIds } }, { $set: { digestSent: true, digestFailed: false } });
               console.log(`✅ Marked ${taskIds.length} tasks as digestSent for User: ${userId}`);
+            } else {
+              await Task.updateMany({ _id: { $in: taskIds } }, { $inc: { digestRetryCount: 1 }, $set: { digestFailed: true } });
+              console.log(`⚠️ Failed to send digest for User: ${userId}. Incremented retry count.`);
             }
             
             // Pace the worker: Wait 2 seconds before processing the next user to avoid bursting the API
