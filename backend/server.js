@@ -14,6 +14,7 @@ const autofillRoutes = require('./routes/autofillRoutes');
 const userRoutes = require('./routes/userRoutes');
 const reportRoutes = require('./routes/reportRoutes');
 const habitRoutes = require('./routes/habitRoutes');
+const extensionRoutes = require('./routes/extensionRoutes');
 const { startEmailWorker } = require('./services/emailWorker');
 
 const app = express();
@@ -65,6 +66,7 @@ app.use('/api/reminders', generalApiLimiter, reminderRoutes); // General limit f
 app.use('/api/user', generalApiLimiter, userRoutes);
 app.use('/api/reports', generalApiLimiter, reportRoutes);
 app.use('/api/habits', generalApiLimiter, habitRoutes);
+app.use('/api/extension', aiLimiter, extensionRoutes);
 
 // Basic Health Check Route
 app.get('/api/health', (req, res) => {

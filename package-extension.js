@@ -15,13 +15,15 @@ fs.cpSync(extDir, tmpDir, { recursive: true });
 // 2. Replace URLs in background.js
 const bgPath = path.join(tmpDir, 'background.js');
 let bg = fs.readFileSync(bgPath, 'utf8');
-bg = bg.replace("'http://localhost:5050'", "'https://lasminai.onrender.com'");
+bg = bg.replace(/'http:\/\/localhost:5050'/g, "'https://lasminai.onrender.com'");
+bg = bg.replace(/'http:\/\/localhost:5174'/g, "'https://lasminai.vercel.app'");
 fs.writeFileSync(bgPath, bg);
 
 // 3. Replace URLs in popup.js
 const popupPath = path.join(tmpDir, 'popup', 'popup.js');
 let popup = fs.readFileSync(popupPath, 'utf8');
-popup = popup.replace("'http://localhost:5174'", "'https://lasminai.vercel.app'");
+popup = popup.replace(/'http:\/\/localhost:5174'/g, "'https://lasminai.vercel.app'");
+popup = popup.replace(/'http:\/\/localhost:5050'/g, "'https://lasminai.onrender.com'");
 fs.writeFileSync(popupPath, popup);
 
 // 4. Zip the contents

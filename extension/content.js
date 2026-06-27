@@ -11,6 +11,11 @@ chrome.storage.sync.get('siteSettings', ({ siteSettings: storedSettings = {} }) 
 
   const isLasMinWebApp = window.location.href.includes('localhost:5174') || window.location.href.includes('localhost:5050') || window.location.href.includes('lasminai.vercel.app');
 
+  const safeSendMessage = (msg, callback) => {
+    if (!chrome.runtime?.id) return;
+    try { chrome.runtime.sendMessage(msg, callback); } catch(e) {}
+  };
+
 // Only build and inject the Voice Assistant UI if voice is enabled
 if (siteSettings.voice) {
   // 1. Inject the Container
@@ -21,15 +26,7 @@ if (siteSettings.voice) {
   }
   document.documentElement.appendChild(root);
 
-  const safeSendMessage = (msg, callback) => {
-    if (!chrome.runtime?.id) {
-      return;
-    }
-    try {
-      chrome.runtime.sendMessage(msg, callback);
-    } catch(e) {
-    }
-  };
+  // Moved safeSendMessage to the top level of the callback
 
   // 2. Build the Voice Assistant UI
   const widgetContainer = document.createElement('div');
@@ -492,6 +489,225 @@ async function handleAutofill() {
     
     setTimeout(() => toast.remove(), 4000);
   });
+}
+
+// 7. DOM Reader Task Extraction
+chrome.runtime.onMessage.addListener((message) => {
+  if (message.type === 'TRIGGER_EXTRACT_TASKS') {
+    handleExtractTasks();
+  }
+});
+
+async function handleExtractTasks() {
+  let text = window.getSelection().toString().trim();
+  if (!text) {
+    // 1. Try to find the primary content container
+    let mainNode = document.querySelector('main') || document.querySelector('[role="main"]') || document.querySelector('article');
+    
+    // Gmail-specific logic: target the actual open email body
+    if (window.location.hostname.includes('mail.google.com')) {
+      const openEmails = document.querySelectorAll('.a3s');
+      if (openEmails.length > 0) {
+        // In threads, the last .a3s is typically the expanded/current one
+        mainNode = openEmails[openEmails.length - 1];
+      }
+    }
+
+    if (!mainNode) {
+      mainNode = document.body;
+    }
+
+    // 2. Temporarily hide junk in the LIVE DOM so innerText ignores it.
+    // Cloning loses CSS layout context, meaning innerText returns hidden text!
+    const junkSelectors = ['nav', 'header', 'footer', 'aside', 'script', 'style', 'noscript', 'iframe', '.ad', '.ads', '.advertisement'];
+    const hiddenElements = [];
+    
+    junkSelectors.forEach(sel => {
+      const els = mainNode.querySelectorAll ? mainNode.querySelectorAll(sel) : [];
+      els.forEach(el => {
+        if (el.style.display !== 'none') {
+          hiddenElements.push({ el, originalDisplay: el.style.display });
+          el.style.display = 'none';
+        }
+      });
+    });
+
+    // 2.5 Expose hidden URLs safely without destroying child elements (images, spans)
+    const linkRestores = [];
+    if (mainNode.querySelectorAll) {
+      mainNode.querySelectorAll('a').forEach(a => {
+        if (a.href && a.href.startsWith('http') && !a.innerText.includes(a.href)) {
+          const urlTextNode = document.createTextNode(` (${a.href})`);
+          a.appendChild(urlTextNode);
+          linkRestores.push({ a, urlTextNode });
+        }
+      });
+    }
+
+    // innerText on the live DOM accurately reflects what the user sees, plus our injected URLs
+    text = mainNode.innerText || "";
+
+    // 3. Restore DOM (Links first, then visibility)
+    linkRestores.forEach(item => {
+      item.a.removeChild(item.urlTextNode);
+    });
+    
+    hiddenElements.forEach(item => {
+      item.el.style.display = item.originalDisplay;
+    });
+  }
+
+  if (!text) {
+    alert("LasMinAI: Could not find any text to analyze.");
+    return;
+  }
+
+  // Show a loading toast
+  const toast = document.createElement('div');
+  toast.innerText = "LasMinAI is reading the page for tasks...";
+  toast.style.position = 'fixed';
+  toast.style.top = '20px';
+  toast.style.right = '20px';
+  toast.style.padding = '12px 20px';
+  toast.style.background = '#3b82f6';
+  toast.style.color = 'white';
+  toast.style.borderRadius = '8px';
+  toast.style.zIndex = '999999';
+  toast.style.boxShadow = '0 10px 25px -5px rgba(0, 0, 0, 0.1)';
+  toast.style.fontFamily = 'system-ui, sans-serif';
+  document.body.appendChild(toast);
+
+  safeSendMessage({
+    type: 'PROXY_FETCH',
+    url: '/api/extension/parse-dom',
+    method: 'POST',
+    body: { text: text.substring(0, 15000), url: window.location.href } // limit chars
+  }, (response) => {
+    toast.remove();
+    if (response && response.success && response.data && response.data.tasks) {
+      showExtractedTasksModal(response.data.tasks);
+    } else {
+      alert("LasMinAI failed to extract tasks: " + (response?.error || response?.data?.message || "Unknown error"));
+    }
+  });
+}
+
+function showExtractedTasksModal(tasks) {
+  const modalOverlay = document.createElement('div');
+  modalOverlay.className = 'lasminai-tasks-modal-overlay';
+
+  const modalBox = document.createElement('div');
+  modalBox.className = 'lasminai-tasks-modal-box';
+
+  const header = document.createElement('h2');
+  header.className = 'lasminai-tasks-header';
+  header.innerHTML = `<span>Extracted Tasks</span> <span style="font-size: 14px; font-weight: normal; color: rgba(0,0,0,0.5);">${tasks.length} found</span>`;
+  modalBox.appendChild(header);
+
+  if (tasks.length === 0) {
+    const empty = document.createElement('p');
+    empty.innerText = "No tasks found on this page.";
+    empty.style.color = 'rgba(0, 0, 0, 0.6)';
+    modalBox.appendChild(empty);
+  }
+
+  tasks.forEach((task, index) => {
+    const taskDiv = document.createElement('div');
+    taskDiv.className = 'lasminai-task-card';
+    taskDiv.id = `lasminai-task-${index}`;
+
+    const titleInput = document.createElement('input');
+    titleInput.className = 'lasminai-task-input title-input';
+    titleInput.value = task.title;
+
+    const descInput = document.createElement('textarea');
+    descInput.className = 'lasminai-task-textarea';
+    descInput.value = task.description || '';
+    descInput.placeholder = 'Add details or context...';
+
+    const deadlineInput = document.createElement('input');
+    deadlineInput.className = 'lasminai-task-input';
+    deadlineInput.type = 'datetime-local';
+    if (task.deadline) {
+      try {
+        const d = new Date(task.deadline);
+        d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+        deadlineInput.value = d.toISOString().slice(0, 16);
+      } catch (e) {}
+    }
+
+    const controls = document.createElement('div');
+    controls.className = 'lasminai-task-controls';
+
+    const addBtn = document.createElement('button');
+    addBtn.className = 'lasminai-btn-add';
+    addBtn.innerText = "Add Task";
+
+    const rejectBtn = document.createElement('button');
+    rejectBtn.className = 'lasminai-btn-reject';
+    rejectBtn.innerText = "Reject";
+
+    addBtn.onclick = () => {
+      addBtn.innerText = 'Adding...';
+      const dl = deadlineInput.value ? new Date(deadlineInput.value).toISOString() : new Date().toISOString();
+      safeSendMessage({
+        type: 'PROXY_FETCH',
+        url: '/api/tasks',
+        method: 'POST',
+        body: {
+          title: titleInput.value,
+          description: descInput.value,
+          deadline: dl,
+          complexity: task.complexity || 3,
+          technicalEffort: task.technicalEffort || 2
+        }
+      }, (resp) => {
+        if (resp && resp.success) {
+          taskDiv.style.opacity = '0';
+          taskDiv.style.transform = 'scale(0.95)';
+          taskDiv.style.transition = 'all 0.3s ease';
+          setTimeout(() => {
+            taskDiv.remove();
+            if (modalBox.querySelectorAll('.lasminai-task-card').length === 0) {
+              modalOverlay.remove();
+            }
+          }, 300);
+        } else {
+          addBtn.innerText = 'Failed';
+        }
+      });
+    };
+
+    rejectBtn.onclick = () => {
+      taskDiv.style.opacity = '0';
+      taskDiv.style.transform = 'scale(0.95)';
+      taskDiv.style.transition = 'all 0.3s ease';
+      setTimeout(() => {
+        taskDiv.remove();
+        if (modalBox.querySelectorAll('.lasminai-task-card').length === 0) {
+          modalOverlay.remove();
+        }
+      }, 300);
+    };
+
+    controls.appendChild(addBtn);
+    controls.appendChild(rejectBtn);
+
+    taskDiv.appendChild(titleInput);
+    taskDiv.appendChild(descInput);
+    taskDiv.appendChild(deadlineInput);
+    taskDiv.appendChild(controls);
+    modalBox.appendChild(taskDiv);
+  });
+
+  const closeBtn = document.createElement('button');
+  closeBtn.className = 'lasminai-btn-close';
+  closeBtn.innerText = "Close";
+  closeBtn.onclick = () => modalOverlay.remove();
+  
+  modalBox.appendChild(closeBtn);
+  modalOverlay.appendChild(modalBox);
+  document.body.appendChild(modalOverlay);
 }
 
 }); // End of excludedDomains callback

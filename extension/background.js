@@ -9,11 +9,19 @@ chrome.runtime.onInstalled.addListener(() => {
     title: 'Auto-fill form with LasMinAI',
     contexts: ['page', 'editable']
   });
+  chrome.contextMenus.create({
+    id: 'lasminai-extract-tasks',
+    title: 'Extract tasks with LasMinAI',
+    contexts: ['page', 'selection']
+  });
 });
 
 chrome.contextMenus.onClicked.addListener((info, tab) => {
   if (info.menuItemId === 'lasminai-autofill' && tab.id) {
     chrome.tabs.sendMessage(tab.id, { type: 'TRIGGER_AUTOFILL' }).catch(() => {});
+  }
+  if (info.menuItemId === 'lasminai-extract-tasks' && tab.id) {
+    chrome.tabs.sendMessage(tab.id, { type: 'TRIGGER_EXTRACT_TASKS' }).catch(() => {});
   }
 });
 

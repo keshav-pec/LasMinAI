@@ -559,6 +559,59 @@ const generateFormAutofillData = async (formSchema, userProfile, retries = 3, ba
   }
 };
 
+// ==========================================
+// 8. EXTENSION DOM PARSER
+// ==========================================
+const domTaskExtractionSchema = {
+  type: Type.ARRAY,
+  description: "A list of extracted tasks from the webpage.",
+  items: {
+    type: Type.OBJECT,
+    properties: {
+      title: { type: Type.STRING, description: "A concise title for the task." },
+      description: { type: Type.STRING, description: "Detailed helpful context or instructions found." },
+      deadline: { type: Type.STRING, description: "ISO 8601 date string if a deadline is implied. Omit if none." },
+      complexity: { type: Type.NUMBER, description: "Scale 1-5 (1=easy, 5=hard). Default 3." },
+      technicalEffort: { type: Type.NUMBER, description: "Estimated hours. Default 2." }
+    },
+    required: ["title"]
+  }
+};
+
+const extractTasksFromDOM = async (textContext, urlContext) => {
+  try {
+    const systemInstruction = `
+      You are an intelligent task parser for LasMinAI.
+      The user has right-clicked on a webpage and triggered the DOM reader.
+      I will provide you with the raw text extracted from the webpage.
+      URL context: ${urlContext}
+      
+      Your job is to read this unstructured text and find ALL implied action items, homework, tickets, or tasks.
+      CRITICAL: Do not stop at just 3 tasks! Extract EVERY SINGLE valid task you can find on the page (up to 15 tasks).
+      CRITICAL: If the text includes meeting links, documentation URLs, or any (https://...) references relevant to the task, YOU MUST include them in the description field.
+      Estimate their complexity (1-5) and technical effort (1-24h).
+      Deduce the deadline if mentioned.
+      Return an array of JSON objects representing the tasks.
+    `;
+
+    const response = await ai.models.generateContent({
+      model: 'gemini-3.1-flash-lite',
+      contents: [{ role: 'user', parts: [{ text: textContext }] }],
+      config: {
+        systemInstruction,
+        responseMimeType: "application/json",
+        responseSchema: domTaskExtractionSchema,
+        temperature: 0.2
+      }
+    });
+
+    return JSON.parse(response.text);
+  } catch (error) {
+    console.error(`❌ DOM Parsing Error:`, error);
+    throw error;
+  }
+};
+
 module.exports = {
   parseUserMessage,
   parseWorkstationMessage,
@@ -566,5 +619,6 @@ module.exports = {
   parseGeneralMessage,
   parseOrchestratorIntent,
   generateTaskDigestMaterial,
-  generateFormAutofillData
+  generateFormAutofillData,
+  extractTasksFromDOM
 };
