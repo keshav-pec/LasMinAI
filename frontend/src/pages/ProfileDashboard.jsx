@@ -62,7 +62,14 @@ export default function ProfileDashboard({ userData }) {
     e.preventDefault();
     setIsCreating(true);
     try {
-      const res = await axios.post(`${import.meta.env.VITE_API_URL}/api/habits`, newHabit, { withCredentials: true });
+      const payload = {
+        ...newHabit,
+        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone
+      };
+
+      const res = await axios.post(`${import.meta.env.VITE_API_URL || 'http://localhost:5050'}/api/habits`, payload, {
+        withCredentials: true
+      });
       if (res.data.success) {
         toast.success("Habit created!");
         setHabits([res.data.habit, ...habits]);
@@ -93,7 +100,7 @@ export default function ProfileDashboard({ userData }) {
   };
 
   const tabs = [
-    { id: 'habits', label: 'Habits & Consistency', icon: Repeat },
+    { id: 'habits', label: 'Habits', icon: Repeat },
     { id: 'history', label: 'History', icon: History },
   ];
 
@@ -286,7 +293,7 @@ export default function ProfileDashboard({ userData }) {
                                         <div className="text-lg font-bold text-blue-600">{habit.totalCompleted}</div>
                                       </div>
                                       <div className="bg-white dark:bg-neutral-800 p-3 rounded-lg border border-neutral-200 dark:border-neutral-700">
-                                        <div className="text-xs text-neutral-500 mb-1 flex items-center gap-1"><Clock className="w-3 h-3"/> Spawns At</div>
+                                        <div className="text-xs text-neutral-500 mb-1 flex items-center gap-1"><Clock className="w-3 h-3"/> Deadline</div>
                                         <div className="text-lg font-bold text-emerald-600">{habit.deadlineTime}</div>
                                       </div>
                                     </div>

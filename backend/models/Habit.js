@@ -22,6 +22,10 @@ const HabitSchema = new mongoose.Schema({
     type: String,
     required: true, // e.g., "18:00"
   },
+  timezone: {
+    type: String,
+    default: 'UTC',
+  },
   complexity: {
     type: Number,
     default: 5,

@@ -15,7 +15,7 @@ const getHabits = async (req, res) => {
 // Create a new habit
 const createHabit = async (req, res) => {
   try {
-    const { title, description, frequency, deadlineTime, complexity, technicalEffort } = req.body;
+    const { title, description, frequency, deadlineTime, complexity, technicalEffort, timezone } = req.body;
     
     if (!title || !deadlineTime) {
       return res.status(400).json({ success: false, message: 'Title and deadline time are required.' });
@@ -24,8 +24,8 @@ const createHabit = async (req, res) => {
     if (complexity !== undefined && (typeof complexity !== 'number' || complexity < 1 || complexity > 10)) {
       return res.status(400).json({ success: false, message: 'Complexity must be a number between 1 and 10.' });
     }
-    if (technicalEffort !== undefined && (typeof technicalEffort !== 'number' || technicalEffort < 1 || technicalEffort > 10)) {
-      return res.status(400).json({ success: false, message: 'Technical Effort must be a number between 1 and 10.' });
+    if (technicalEffort !== undefined && (typeof technicalEffort !== 'number' || technicalEffort < 1 || technicalEffort > 24)) {
+      return res.status(400).json({ success: false, message: 'Technical Effort must be a number between 1 and 24.' });
     }
 
     const newHabit = new Habit({
@@ -34,6 +34,7 @@ const createHabit = async (req, res) => {
       description,
       frequency,
       deadlineTime,
+      timezone: timezone || 'UTC',
       complexity,
       technicalEffort
     });
