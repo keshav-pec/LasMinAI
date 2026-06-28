@@ -53,22 +53,31 @@ router.post('/process', requireAuth, async (req, res) => {
     // This allows the Voice Assistant to be a global proxy for all existing Chatbots
     if (intent === 'TASK_PROMPTER') {
       const controllerRes = await runController(handleChatMessage, req);
-      finalReply = controllerRes.data.reply || "I've handled that task for you.";
-      finalVoiceReply = controllerRes.data.voiceReply || finalReply;
-      actionTaken = controllerRes.data.actionTaken || "NONE";
-
+      if (controllerRes.data.success) {
+        finalReply = controllerRes.data.reply;
+        finalVoiceReply = controllerRes.data.voiceReply || finalReply;
+        actionTaken = controllerRes.data.actionTaken || "NONE";
+      } else {
+        finalReply = "Sorry, I encountered an error managing your tasks.";
+      }
     } else if (intent === 'WORK_STATION') {
       const controllerRes = await runController(handleWorkstationChat, req);
-      finalReply = controllerRes.data.reply || "I've updated your workstation schedule.";
-      finalVoiceReply = controllerRes.data.voiceReply || finalReply;
-      actionTaken = controllerRes.data.actionTaken || "NONE";
-
+      if (controllerRes.data.success) {
+        finalReply = controllerRes.data.reply;
+        finalVoiceReply = controllerRes.data.voiceReply || finalReply;
+        actionTaken = controllerRes.data.actionTaken || "NONE";
+      } else {
+        finalReply = "Sorry, I encountered an error updating your workstation schedule.";
+      }
     } else if (intent === 'REMINDER') {
       const controllerRes = await runController(handleReminderChat, req);
-      finalReply = controllerRes.data.reply || "I've updated your reminders.";
-      finalVoiceReply = controllerRes.data.voiceReply || finalReply;
-      actionTaken = controllerRes.data.actionTaken || "NONE";
-
+      if (controllerRes.data.success) {
+        finalReply = controllerRes.data.reply;
+        finalVoiceReply = controllerRes.data.voiceReply || finalReply;
+        actionTaken = controllerRes.data.actionTaken || "NONE";
+      } else {
+        finalReply = "Sorry, I encountered an error managing your reminders.";
+      }
     } else if (intent === 'GENERAL_CHAT' || intent === 'UNKNOWN') {
       const aiResponse = await parseGeneralMessage(message, localTime);
       finalReply = aiResponse.reply;

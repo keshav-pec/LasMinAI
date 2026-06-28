@@ -5,7 +5,7 @@ const { parseLocalToUTC } = require('../utils/dateUtils');
 
 exports.handleChatMessage = async (req, res) => {
   try {
-    const { message, history, localTime, timezoneOffset } = req.body;
+    const { message, history, localTime, timezoneOffset, sourceUrl } = req.body;
 
     if (!message) {
       return res.status(400).json({ success: false, error: "Message is required." });
