@@ -3,6 +3,7 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Moon, Sun, Zap, User, Settings, LogOut, Terminal as TerminalIcon, Download, Trash2 } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { LATEST_EXTENSION_VERSION } from '../config';
 
 export default function Navbar({ userData, setUserData }) {
   const [isDark, setIsDark] = useState(() => localStorage.getItem('theme') !== 'light');
@@ -12,9 +13,18 @@ export default function Navbar({ userData, setUserData }) {
   const [isStandalone, setIsStandalone] = useState(
     window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone || document.referrer.includes('android-app://')
   );
+  const [hasExtensionUpdate, setHasExtensionUpdate] = useState(() => {
+    return localStorage.getItem('lasminai_extension_version') !== LATEST_EXTENSION_VERSION;
+  });
   const menuRef = useRef(null);
   const navigate = useNavigate();
   const location = useLocation();
+
+  useEffect(() => {
+    const handleExtensionUpdate = () => setHasExtensionUpdate(false);
+    window.addEventListener('extension_updated', handleExtensionUpdate);
+    return () => window.removeEventListener('extension_updated', handleExtensionUpdate);
+  }, []);
 
   useEffect(() => {
     const root = document.documentElement;
@@ -148,7 +158,7 @@ export default function Navbar({ userData, setUserData }) {
           <div className="relative" ref={menuRef}>
             <button 
               onClick={() => setIsMenuOpen(!isMenuOpen)}
-              className="flex items-center gap-2 focus:outline-none"
+              className="flex items-center gap-2 focus:outline-none relative"
             >
               <img src={userData.picture} alt="Profile" className="w-9 h-9 rounded-full border-2 border-transparent hover:border-blue-500 transition-colors object-cover cursor-pointer" />
             </button>
@@ -169,8 +179,15 @@ export default function Navbar({ userData, setUserData }) {
                     <Link to="/profile" onClick={() => setIsMenuOpen(false)} className="w-full flex items-center gap-3 px-3 py-2 text-sm text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-lg transition-colors text-left">
                       <User className="w-4 h-4" /> Profile
                     </Link>
-                    <Link to="/settings" onClick={() => setIsMenuOpen(false)} className="w-full flex items-center gap-3 px-3 py-2 text-sm text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-lg transition-colors text-left mt-1">
-                      <Settings className="w-4 h-4" /> Settings
+                    <Link to="/settings" onClick={() => setIsMenuOpen(false)} className="w-full flex items-center justify-between px-3 py-2 text-sm text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-lg transition-colors text-left mt-1">
+                      <div className="flex items-center gap-3">
+                        <Settings className="w-4 h-4" /> Settings
+                      </div>
+                      {hasExtensionUpdate && (
+                        <div className="w-4 h-4 bg-amber-500 rounded-full flex items-center justify-center shrink-0">
+                          <span className="text-white text-[10px] font-bold">!</span>
+                        </div>
+                      )}
                     </Link>
                     <button 
                       onClick={() => {

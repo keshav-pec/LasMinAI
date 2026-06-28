@@ -4,12 +4,22 @@ import { User, Briefcase, Blocks, Info, Loader2, Lightbulb, X } from 'lucide-rea
 import { useForm } from 'react-hook-form';
 import axios from 'axios';
 import toast from 'react-hot-toast';
+import { LATEST_EXTENSION_VERSION } from '../config';
 
 export default function Settings({ userData }) {
   const [activeTab, setActiveTab] = useState('personal');
   const [isSaving, setIsSaving] = useState(false);
   const [showPrivacy, setShowPrivacy] = useState(true);
   const [showRecommendation, setShowRecommendation] = useState(true);
+  const [hasExtensionUpdate, setHasExtensionUpdate] = useState(() => {
+    return localStorage.getItem('lasminai_extension_version') !== LATEST_EXTENSION_VERSION;
+  });
+
+  useEffect(() => {
+    const handleExtensionUpdate = () => setHasExtensionUpdate(false);
+    window.addEventListener('extension_updated', handleExtensionUpdate);
+    return () => window.removeEventListener('extension_updated', handleExtensionUpdate);
+  }, []);
 
   const { register, handleSubmit, reset } = useForm({
     defaultValues: {
@@ -64,7 +74,7 @@ export default function Settings({ userData }) {
   const tabs = [
     { id: 'personal', label: 'Personal', icon: User },
     { id: 'professional', label: 'Professional', icon: Briefcase },
-    { id: 'extensions', label: 'Extensions', icon: Blocks },
+    { id: 'extensions', label: 'Extensions', icon: Blocks, hasUpdate: hasExtensionUpdate },
   ];
 
   return (
@@ -80,7 +90,7 @@ export default function Settings({ userData }) {
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-xl transition-colors whitespace-nowrap ${
+                  className={`flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-xl transition-colors whitespace-nowrap relative ${
                     isActive 
                       ? 'bg-blue-50 text-blue-700 dark:bg-blue-500/10 dark:text-blue-400' 
                       : 'text-neutral-600 hover:bg-neutral-100 dark:text-neutral-400 dark:hover:bg-neutral-800'
@@ -88,6 +98,11 @@ export default function Settings({ userData }) {
                 >
                   <Icon className="w-5 h-5" />
                   {tab.label}
+                  {tab.hasUpdate && (
+                    <div className="absolute right-3 w-4 h-4 bg-amber-500 rounded-full flex items-center justify-center">
+                      <span className="text-white text-[10px] font-bold">!</span>
+                    </div>
+                  )}
                 </button>
               );
             })}
@@ -447,7 +462,16 @@ export default function Settings({ userData }) {
                 <div className="space-y-6">
                   <h2 className="text-xl font-semibold text-neutral-900 dark:text-white mb-6">Browser Extension</h2>
                   
-                  <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800/50 rounded-xl p-6 sm:p-8 flex flex-col items-center text-center">
+                  {hasExtensionUpdate && (
+                    <div className="flex items-start gap-3 p-4 bg-amber-50/50 dark:bg-amber-500/5 border border-amber-100 dark:border-amber-500/10 rounded-xl relative group">
+                      <Info className="w-5 h-5 text-amber-600 dark:text-amber-400 mt-0.5 flex-shrink-0" />
+                      <p className="text-sm text-amber-800 dark:text-amber-100 leading-relaxed pr-6">
+                        <strong>Update Available:</strong> You need to download or update the LasMinAI Chrome Extension. Click the button below to download the latest version.
+                      </p>
+                    </div>
+                  )}
+                  
+                  <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800/50 rounded-xl p-6 sm:p-8 flex flex-col items-center text-center relative">
                     <Blocks className="w-12 h-12 text-blue-600 dark:text-blue-400 mb-4" />
                     <h3 className="text-lg font-semibold text-neutral-900 dark:text-white mb-2">LasMinAI Everywhere</h3>
                     <p className="text-sm text-neutral-600 dark:text-neutral-400 max-w-md mb-6">
@@ -457,6 +481,10 @@ export default function Settings({ userData }) {
                     <a 
                       href="/lasminai-extension.zip" 
                       download="lasminai-extension.zip"
+                      onClick={() => {
+                        localStorage.setItem('lasminai_extension_version', LATEST_EXTENSION_VERSION);
+                        window.dispatchEvent(new Event('extension_updated'));
+                      }}
                       className="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors shadow-sm"
                     >
                       Download Extension (.zip)
@@ -469,7 +497,8 @@ export default function Settings({ userData }) {
                       Installation Instructions
                     </h4>
                     <ol className="list-decimal list-inside space-y-3 text-sm text-neutral-700 dark:text-neutral-300">
-                      <li>Download and extract the <strong>.zip</strong> file above to a folder on your computer.</li>
+                      <li>Download the <strong>.zip</strong> file above to your sytem.</li>
+                      <li>Extract (unzip) the downloaded file into a regular folder.</li>
                       <li>Open Google Chrome and navigate to <code className="bg-white dark:bg-neutral-900 px-2 py-0.5 rounded border border-neutral-200 dark:border-neutral-700 font-mono text-xs">chrome://extensions/</code></li>
                       <li>Turn on <strong>Developer mode</strong> using the toggle switch in the top right corner.</li>
                       <li>Click the <strong>Load unpacked</strong> button in the top left.</li>
