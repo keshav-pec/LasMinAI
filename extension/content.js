@@ -394,9 +394,8 @@ btnDismiss.addEventListener('click', () => {
         // Perform backend fetch via proxy
         safeSendMessage({
           type: 'PROXY_FETCH',
-          url: `/api/reminders/${idToDismiss}/status`,
-          method: 'PUT',
-          body: { status: 'dismissed' }
+          url: `/api/reminders/${idToDismiss}/dismiss`,
+          method: 'PUT'
         }, () => {});
       }
     });
@@ -435,8 +434,7 @@ btnSnooze.addEventListener('click', () => {
   safeSendMessage({
     type: 'PROXY_FETCH',
     url: `/api/reminders/${idToSnooze}/snooze`,
-    method: 'PUT',
-    body: { remindAt: snoozeTime.toISOString() }
+    method: 'PUT'
   }, () => {});
 });
 

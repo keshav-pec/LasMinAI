@@ -166,6 +166,17 @@ const CalendarWidget = memo(function CalendarWidget({ tasks = [], handleToggleCo
                       <div className="flex items-start justify-between gap-3">
                         <div className="w-full">
                           <h3 className={`font-semibold mb-1 text-sm flex items-center gap-1.5 flex-wrap ${colors.text} leading-tight ${task.status === 'completed' ? 'line-through' : ''}`}>
+                            {task.sourceUrl && (
+                              <a 
+                                href={task.sourceUrl} 
+                                target="_blank" 
+                                rel="noopener noreferrer" 
+                                className="flex items-center text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 transition-colors shrink-0 text-base -mr-0.5"
+                                title="Open Source"
+                              >
+                                🔗
+                              </a>
+                            )}
                             <span className="break-words">{task.title}</span>
                             <span className="opacity-70 text-xs font-normal whitespace-nowrap">
                               ({new Date(task.deadline).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: true })})
@@ -179,16 +190,6 @@ const CalendarWidget = memo(function CalendarWidget({ tasks = [], handleToggleCo
                             <span className="flex items-center gap-1 font-medium opacity-60 text-neutral-600 dark:text-neutral-400">
                               P-Score: {task.priorityScore}
                             </span>
-                            {task.sourceUrl && (
-                              <a 
-                                href={task.sourceUrl} 
-                                target="_blank" 
-                                rel="noopener noreferrer" 
-                                className="flex items-center gap-1 font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 bg-blue-50 dark:bg-blue-500/10 px-1.5 py-0.5 rounded transition-colors ml-auto"
-                              >
-                                🔗 Source
-                              </a>
-                            )}
                           </div>
                           {isOverdue && task.status !== 'completed' && (
                             <div className="mt-2 text-xs font-semibold text-red-600 dark:text-red-400 bg-red-100 dark:bg-red-900/30 px-2 py-1 rounded w-fit uppercase tracking-wider">
