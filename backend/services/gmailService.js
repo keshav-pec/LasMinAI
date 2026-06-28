@@ -22,7 +22,7 @@ const sendGmailDigest = async (userId, htmlBody) => {
     const gmail = google.gmail({ version: 'v1', auth: oauth2Client });
 
     // Raw email construction requires base64url encoding
-    const subject = "LasMinAI: Your Upcoming Productive Session Digest";
+    const subject = "LasMinAI: Your Upcoming Productivity Session Digest";
     const utf8Subject = `=?utf-8?B?${Buffer.from(subject).toString('base64')}?=`;
     
     const messageParts = [

@@ -55,7 +55,7 @@ export default function RemindersDashboard() {
       if (response.data.success) {
         const snoozeTime = new Date(new Date().getTime() + 10 * 60000);
         setReminders(prev => prev.map(r => r._id === reminderId ? { ...r, remindAt: snoozeTime.toISOString() } : r));
-        toast.success("Snoozed for 10 minutes", { icon: '⏰' });
+        toast.success("Snoozed for 5 minutes", { icon: '⏰' });
         broadcastReminderAction('SNOOZED', { id: reminderId });
       }
     } catch (error) {

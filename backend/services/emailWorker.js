@@ -70,9 +70,8 @@ const startEmailWorker = () => {
           
           if (digestTasks.length > 0) {
             console.log(`🤖 Requesting HTML Material from Gemini for ${digestTasks.length} tasks...`);
-            // 4. Generate the Grounded Email Body using the first task's timezone
-            const userTimezone = digestTasks[0].timezone || 'UTC';
-            const htmlBody = await generateTaskDigestMaterial(digestTasks, userTimezone);
+            // 4. Generate the Grounded Email Body
+            const htmlBody = await generateTaskDigestMaterial(digestTasks);
             
             // 5. Send it via their Native Gmail
             const sentSuccess = await sendGmailDigest(userId, htmlBody);

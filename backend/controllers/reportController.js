@@ -19,7 +19,7 @@ const escapeHtml = (unsafe) => {
 
 const generateGoogleDocReport = async (req, res) => {
   try {
-    const { date, timezone } = req.query; // format: YYYY-MM-DD
+    const { date, timezone, timezoneOffset } = req.query; // format: YYYY-MM-DD
     const userId = req.user.id; // from auth middleware
 
     if (!date || typeof date !== 'string') {
@@ -27,8 +27,21 @@ const generateGoogleDocReport = async (req, res) => {
     }
 
     const [year, month, day] = date.split('-');
-    const startOfDay = new Date(year, month - 1, day, 0, 0, 0, 0);
-    const endOfDay = new Date(year, month - 1, day, 23, 59, 59, 999);
+    
+    // Parse the timezoneOffset (e.g., '+05:30' or '-04:00') into minutes
+    const offsetMatch = (timezoneOffset || '+00:00').match(/^([+-])(\d{2}):(\d{2})$/);
+    const offsetMinutes = offsetMatch 
+      ? (offsetMatch[1] === '+' ? 1 : -1) * (parseInt(offsetMatch[2]) * 60 + parseInt(offsetMatch[3]))
+      : 0;
+
+    // Construct the bounds strictly in UTC based on the user's offset
+    // 00:00:00 local time -> convert to UTC by subtracting the offset
+    const localStartMs = new Date(`${year}-${month}-${day}T00:00:00.000Z`).getTime();
+    const startOfDay = new Date(localStartMs - offsetMinutes * 60000);
+    
+    // 23:59:59 local time -> convert to UTC by subtracting the offset
+    const localEndMs = new Date(`${year}-${month}-${day}T23:59:59.999Z`).getTime();
+    const endOfDay = new Date(localEndMs - offsetMinutes * 60000);
 
     // 1. Fetch User and Tasks concurrently
     const [user, tasks] = await Promise.all([

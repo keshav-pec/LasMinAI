@@ -581,7 +581,7 @@ async function handleExtractTasks() {
     type: 'PROXY_FETCH',
     url: '/api/extension/parse-dom',
     method: 'POST',
-    body: { text: text.substring(0, 15000), url: window.location.href } // limit chars
+    body: { text: text.substring(0, 60000), url: window.location.href } // limit chars
   }, (response) => {
     toast.remove();
     if (response && response.success && response.data && response.data.tasks) {
@@ -591,6 +591,32 @@ async function handleExtractTasks() {
     }
   });
 }
+
+// --- QUEUE SYSTEM FOR EXTENSION REQUESTS ---
+let requestQueue = [];
+let isProcessingQueue = false;
+
+function processQueue() {
+  if (requestQueue.length === 0) {
+    isProcessingQueue = false;
+    return;
+  }
+  isProcessingQueue = true;
+  const { message, callback } = requestQueue.shift();
+  
+  safeSendMessage(message, (response) => {
+    if (callback) callback(response);
+    setTimeout(processQueue, 300); // 300ms delay between requests
+  });
+}
+
+function queueMessage(message, callback) {
+  requestQueue.push({ message, callback });
+  if (!isProcessingQueue) {
+    processQueue();
+  }
+}
+// -----------------------------------------
 
 function showExtractedTasksModal(tasks) {
   const modalOverlay = document.createElement('div');
@@ -650,7 +676,7 @@ function showExtractedTasksModal(tasks) {
     addBtn.onclick = () => {
       addBtn.innerText = 'Adding...';
       const dl = deadlineInput.value ? new Date(deadlineInput.value).toISOString() : new Date().toISOString();
-      safeSendMessage({
+      queueMessage({
         type: 'PROXY_FETCH',
         url: '/api/tasks',
         method: 'POST',
@@ -662,7 +688,8 @@ function showExtractedTasksModal(tasks) {
           technicalEffort: task.technicalEffort || 2
         }
       }, (resp) => {
-        if (resp && resp.success) {
+        // FIX: Also check resp.data.success to ensure the actual server request succeeded
+        if (resp && resp.success && resp.data && resp.data.success) {
           taskDiv.style.opacity = '0';
           taskDiv.style.transform = 'scale(0.95)';
           taskDiv.style.transition = 'all 0.3s ease';

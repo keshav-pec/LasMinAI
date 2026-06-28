@@ -78,7 +78,15 @@ const CalendarWidget = memo(function CalendarWidget({ tasks = [], handleToggleCo
     try {
       toast.loading("Generating Google Doc with AI...", { id: 'export-toast' });
       const userTimezone = encodeURIComponent(Intl.DateTimeFormat().resolvedOptions().timeZone);
-      const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/reports/daily-doc?date=${dateStr}&timezone=${userTimezone}`, { withCredentials: true });
+      
+      const offsetMinutes = new Date().getTimezoneOffset();
+      const sign = offsetMinutes > 0 ? '-' : '+';
+      const absOffset = Math.abs(offsetMinutes);
+      const hours = String(Math.floor(absOffset / 60)).padStart(2, '0');
+      const minutes = String(absOffset % 60).padStart(2, '0');
+      const timezoneOffset = encodeURIComponent(`${sign}${hours}:${minutes}`);
+
+      const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/reports/daily-doc?date=${dateStr}&timezone=${userTimezone}&timezoneOffset=${timezoneOffset}`, { withCredentials: true });
       if (response.data.success && response.data.documentUrl) {
         toast.success("Google Doc generated successfully!", { id: 'export-toast', icon: '📄' });
         window.open(response.data.documentUrl, '_blank');

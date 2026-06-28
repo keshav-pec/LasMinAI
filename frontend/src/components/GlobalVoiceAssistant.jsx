@@ -124,10 +124,7 @@ export default function GlobalVoiceAssistant({ isAuthenticated }) {
     } catch(e) {}
 
     try {
-      const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-      const localTime = new Date().toLocaleString('en-US', { timeZone: userTimezone });
-      
-      // Calculate exact offset string (e.g., '+05:30' or '-04:00')
+      const localTime = new Date().toLocaleString('en-US');
       const offsetMinutes = new Date().getTimezoneOffset();
       const sign = offsetMinutes > 0 ? '-' : '+';
       const absOffset = Math.abs(offsetMinutes);
@@ -137,9 +134,8 @@ export default function GlobalVoiceAssistant({ isAuthenticated }) {
 
       const response = await axios.post(`${import.meta.env.VITE_API_URL}/api/voice/process`, {
         message: commandText,
-        userTimezone,
         localTime,
-        timezoneOffset
+        timezoneOffset,
       }, { withCredentials: true });
 
       if (response.data.success) {
@@ -247,7 +243,8 @@ export default function GlobalVoiceAssistant({ isAuthenticated }) {
                     pre: ({node, ...props}) => <pre className="bg-neutral-800 dark:bg-neutral-100 text-neutral-200 dark:text-neutral-800 p-2 rounded-lg my-2 overflow-x-auto text-xs font-mono" {...props} />,
                     code: ({node, inline, ...props}) => inline 
                       ? <code className="bg-neutral-800 dark:bg-blue-50 text-blue-300 dark:text-blue-600 px-1.5 py-0.5 rounded-md text-xs font-semibold" {...props} />
-                      : <code className="font-mono" {...props} />
+                      : <code className="font-mono" {...props} />,
+                    a: ({node, ...props}) => <a className="text-blue-500 hover:text-blue-400 underline cursor-pointer" target="_blank" rel="noopener noreferrer" {...props} />
                   }}
                 >
                   {transcript}

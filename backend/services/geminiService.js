@@ -10,12 +10,11 @@ const COMMON_FORMATTING_RULES = `
       CRITICAL FORMATTING RULES: 
          - Your response MUST be highly visual and spread out.
          - You MUST use true Markdown bullet points (\`-\`) on NEW LINES. NEVER write lists inline in a single paragraph. 
-         - Use double line breaks (\\n\\n) between paragraphs. 
+         - Use line breaks (\\n) between paragraphs. 
          - You MUST use emojis, **bolding** for keywords. 
          - Use inline code blocks (\`like this\`) to highlight specific task names or times. Make it look beautiful and easy to skim.
-         - NATURAL DATES: When displaying dates or times in your conversational reply, you MUST use natural language. If a date is today, say "Today". If it is tomorrow, say "Tomorrow". Only use exact dates (e.g., "June 28th") for dates further in the future. 
-         - NEVER mention the year (e.g., "2026").
-         - NEVER mention the literal timezone string (e.g., "Asia/Calcutta", "UTC", "IST"). Assume the user knows their own timezone.
+         - NATURAL DATES: When displaying dates or times in your conversational reply, you MUST use natural language. If a date is today, say "Today". If it is tomorrow, say "Tomorrow". Only use exact dates (e.g., "July 28th") for dates further in the future. 
+         - NEVER mention the year (e.g., "2026") or the time zone (e.g., UTC or IST) in your responses.
 `;
 
 // ==========================================
@@ -64,30 +63,28 @@ const workstationSchema = {
 /**
  * Parses the Work Station chat, injects live pending tasks, and generates schedules.
  */
-const parseWorkstationMessage = async (userMessage, history = [], currentTasks = [], userTimezone = 'Asia/Kolkata', localTime = '') => {
+const parseWorkstationMessage = async (userMessage, history = [], currentTasks = [], localTime = '') => {
   try {
     const now = new Date();
     
     const systemPrompt = `
       You are LasMinAI's Execution Manager.
       Current Local Date/Time: ${localTime || now.toLocaleString()}
-      User Timezone: ${userTimezone}
 
       LIVE PENDING TASKS:
       ${JSON.stringify(currentTasks, null, 2)}
 
       Instructions:
-      1. Analyze the user's message and the conversation history.
+      1. Analyze the user's message and the conversation history. Do not hallucinate while helping the user.
       2. The Work Station flow requires knowing the user's 'available time' and 'execution strategy' (specific task, group of tasks, or Pomodoro technique).
-      3. If the user hasn't provided their available time or hasn't selected a strategy, set action to 'GATHER_INFO' and ask them in the 'conversationalReply'. Propose options based on their LIVE PENDING TASKS.
-      4. If the user has provided enough info to proceed, set action to 'EXECUTE_SCHEDULE'. You must then generate the 'calendarEvents' array and 'personalizedRecommendations'.
-      5. When scheduling, assign logical blocks of time. If a task requires more effort than available, chunk it. 
-      6. For Pomodoro, you can schedule 25-minute blocks with 5-minute breaks.
+      3. If the user hasn't provided their available time or hasn't selected a strategy, set action to 'GATHER_INFO' and ask them in the 'conversationalReply'. 
+      4. DO NOT list or mention the user's upcoming or pending tasks in your 'conversationalReply' unless the user explicitly requests it (e.g., 'what are my tasks?' or 'what do I have today?'). If they DO explicitly ask, you MUST list their LIVE PENDING TASKS in your reply.
+      5. If the user has provided enough info to proceed, set action to 'EXECUTE_SCHEDULE'. You must then generate the 'calendarEvents' array and 'personalizedRecommendations'.
+      6. When scheduling, assign logical blocks of time. If a task requires more effort than available, chunk it.
       7. ALWAYS include the exact '_id' of the task in 'taskId' for every calendar event.
       8. Keep your tone highly motivating, professional, and use Markdown for readability.
       9. CRITICAL: NEVER use or mention the word "complexity" in your conversational reply. The complexity metric is strictly for internal mathematical calculations only. Do not attempt to describe it.
-      11. ${COMMON_FORMATTING_RULES}
-      12. CRITICAL TIME FORMATTING: The 'startTime' and 'endTime' ISO strings MUST accurately reflect the ${userTimezone} timezone. Either calculate and append the exact correct offset (e.g., '+05:30' for IST) OR perform the exact math to convert the local time to true UTC and append 'Z'. Do NOT lazily append 'Z' to a local time without converting it, as this causes a severe timezone bug.
+      10. ${COMMON_FORMATTING_RULES}
     `;
 
     const formattedContents = history.map(msg => ({
@@ -116,7 +113,7 @@ const parseWorkstationMessage = async (userMessage, history = [], currentTasks =
 };
 
 // ==========================================
-// 3. CHAT PARSING & INTENT EXTRACTION (CRUD)
+// 3. Task Prompter & INTENT EXTRACTION (CRUD)
 // ==========================================
 const intentSchema = {
   type: Type.OBJECT,
@@ -167,27 +164,25 @@ const intentSchema = {
 /**
  * Parses the message, injects live DB context, and determines the action.
  */
-const parseUserMessage = async (userMessage, history = [], currentTasks = [], userTimezone = 'Asia/Kolkata', localTime = '', timezoneOffset = '+05:30') => {
+const parseUserMessage = async (userMessage, history = [], currentTasks = [], localTime = '') => {
   try {
     const now = new Date();
     
     const systemPrompt = `
-      You are LasMinAI, an advanced productivity agent.
+      You are LasMinAI (powered by gemini and developed by Keshav Goyal), an advanced productivity agent.
       Current Local Date/Time: ${localTime || now.toLocaleString()}
-      User Timezone: ${userTimezone}
 
       LIVE DATABASE CONTEXT (Current User Tasks):
       ${JSON.stringify(currentTasks, null, 2)}
 
       Instructions:
-      1. Analyze the user's latest message alongside the conversation history and Live Database Context.
-      2. If the user asks what tasks they have, set action to 'READ' and list the tasks from the Live Context in your conversationalReply.
-      3. If the user is logging a NEW task, set action to 'CREATE'. You MUST extract a concise 'title' (with no dates/times in it) AND you MUST calculate the exact ISO timestamp for the 'deadline'. If the user provides extra elaboration or helpful context about the task, populate the 'description' field. If they provide no context, leave it empty.
-      4. If the user wants to MODIFY an existing task, set action to 'UPDATE'. You MUST use semantic fuzzy matching to map the task to the Live Context and extract its exact '_id'.
-      5. If you have confused with two or more tasks, then ask the user exactly which task he/she wants to modify or ask about.
-      6. CRITICAL: In your 'conversationalReply', you MUST convert all task deadlines from UTC to the 'User Timezone' before displaying them to the user. Never show raw UTC times to the user.
-      7. CRITICAL TIME FORMATTING: The user's exact current UTC offset is '${timezoneOffset}'. You MUST explicitly append '${timezoneOffset}' to the end of your ISO string (e.g. YYYY-MM-DDTHH:mm:00${timezoneOffset}). Do NOT append 'Z' and do NOT attempt to calculate UTC mathematically yourself.
-      8. ${COMMON_FORMATTING_RULES}
+      1. Analyze the user's latest message alongside the conversation history and Live Database Context. Do not Hallucinate while helping the user.
+      2. CRITICAL LIMITATION: You can only CREATE or UPDATE ONE single task per request. If the user asks to perform actions on multiple tasks simultaneously (e.g., 'Add 3 tasks'), you MUST only perform the action on the FIRST task. In your 'conversationalReply', you MUST explicitly tell the user: "Let's add tasks one by one for more clarity and detailing." and state which task you added.
+      3. If the user asks what tasks they have, set action to 'READ' and list the tasks from the Live Context in your conversationalReply.
+      4. If the user is logging a NEW task, set action to 'CREATE'. You MUST extract a concise 'title' (with no dates/times in it) AND you MUST calculate the exact ISO timestamp for the 'deadline'. If the user provides extra elaboration or helpful context about the task, populate the 'description' field. If they provide no context, leave it empty.
+      5. If the user wants to MODIFY an existing task, set action to 'UPDATE'. You MUST use semantic fuzzy matching to map the task to the Live Context and extract its exact '_id'.
+      6. If you have confused with two or more tasks, then ask the user exactly which task he/she wants to modify or ask about.
+      7. ${COMMON_FORMATTING_RULES}
     `;
 
     const formattedContents = history.map(msg => ({
@@ -269,24 +264,22 @@ const reminderIntentSchema = {
 /**
  * Parses the reminder message, injects live tasks and active reminders context.
  */
-const parseReminderMessage = async (userMessage, history = [], activeTasks = [], activeReminders = [], userTimezone = 'Asia/Kolkata', localTime = '', timezoneOffset = '+05:30') => {
+const parseReminderMessage = async (userMessage, history = [], activeTasks = [], activeReminders = [], localTime = '') => {
   try {
     const now = new Date();
     
     const systemPrompt = `
       You are LasMinAI's Reminders Bot.
       Current Local Date/Time: ${localTime || now.toLocaleString()}
-      User Timezone: ${userTimezone}
 
       LIVE DATABASE CONTEXT:
       Active Reminders: ${JSON.stringify(activeReminders, null, 2)}
       Live Tasks (For context only, do NOT manage tasks here): ${JSON.stringify(activeTasks, null, 2)}
 
       Instructions:
-      1. You manage CUSTOM REMINDERS, not core tasks.
+      1. You manage CUSTOM REMINDERS, not core tasks. Do not hallucinate while helping the user.
       2. If the user asks for reminders, set action to 'READ' and list them.
       3. If the user wants to create a reminder, set action to 'CREATE' and extract 'title' and 'remindAt' (ISO 8601).
-         CRITICAL: The user's exact current UTC offset is '${timezoneOffset}'. You MUST explicitly append '${timezoneOffset}' to the end of your ISO string (e.g. YYYY-MM-DDTHH:mm:00${timezoneOffset}). Do NOT append 'Z' and do NOT attempt to calculate UTC mathematically yourself.
       4. If modifying, set action to 'UPDATE' and provide 'reminderId'.
       5. If they want to dismiss/delete a reminder, set action to 'DISMISS' and provide 'reminderId'.
       6. CRITICAL TONE RULE: Your conversationalReply should be short and to the point. Do not over-explain. Do not mention the user's task load unless they specifically ask or it directly conflicts with their reminder request.
@@ -336,14 +329,13 @@ const generalChatSchema = {
   required: ["reply", "voiceReply"]
 };
 
-const parseGeneralMessage = async (userMessage, userTimezone, localTime) => {
+const parseGeneralMessage = async (userMessage, localTime) => {
   try {
     const systemPrompt = `
       You are LasMinAI, an intelligent productivity assistant.
       The user is asking a general conversational question (e.g., "how are you", "what time is it").
       Answer naturally and concisely.
       Current Time: ${localTime}
-      User Timezone: ${userTimezone}
     `;
 
     const response = await ai.models.generateContent({
@@ -402,8 +394,6 @@ const parseOrchestratorIntent = async (userMessage) => {
       3. REMINDER: If the user explicitly wants a simple custom reminder (not a core to-do task). Example: "Remind me to call mom at 5pm", "What are my reminders?".
       4. GENERAL_CHAT: If the user is asking a general conversational question, greeting you, or asking for facts like "what is the time now", "hello", "how are you".
       5. UNKNOWN: If the request is complete gibberish.
-
-      IMPORTANT EXCEPTION: If the user says "remind me to [do something]", this usually belongs in TASK_PROMPTER as a new to-do list item, UNLESS they specifically want a standalone custom reminder alert at a specific time. Use your best judgment.
       
       If the intent is GENERAL_CHAT or UNKNOWN, you MUST fill out 'generalReply' and 'generalReplyVoice' to answer their question directly, so we don't have to make a second AI call. Be concise and friendly.
     `;
@@ -436,7 +426,7 @@ const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
  * Generates an HTML Email Digest using Google Search Grounding for context.
  * Implements Exponential Backoff and Graceful Fallback to non-grounding if quota is exhausted.
  */
-const generateTaskDigestMaterial = async (tasks, userTimezone = 'UTC', retries = 3, backoffDelay = 2000) => {
+const generateTaskDigestMaterial = async (tasks, retries = 3, backoffDelay = 2000) => {
   try {
     const systemPrompt = `
       You are LasMinAI's helpful Task Preparation Assistant. 
@@ -453,8 +443,7 @@ const generateTaskDigestMaterial = async (tasks, userTimezone = 'UTC', retries =
       4. As an added bonus, encode that exact prompt into a clickable Perplexity or ChatGPT URL (e.g., <a href="https://www.perplexity.ai/search?q=YOUR+URL+ENCODED+PROMPT">Ask AI instantly</a>).
       5. The output MUST be raw HTML (no markdown code blocks, just raw HTML). 
       6. Use inline CSS. Make it look modern, clean, and inspiring (e.g., sans-serif fonts, soft colors, distinct sections for each task).
-      6. Include a brief encouraging message at the top.
-      7. CRITICAL: When writing times, ensure they are strictly referenced in the user's localized time zone (${userTimezone}).
+      7. Include a brief encouraging message at the top.
     `;
 
     const config = {
@@ -480,7 +469,7 @@ const generateTaskDigestMaterial = async (tasks, userTimezone = 'UTC', retries =
       if (retries > 0) {
         console.log(`⏳ Rate Limit Hit. Backing off for ${backoffDelay}ms... (${retries} retries left)`);
         await sleep(backoffDelay);
-        return await generateTaskDigestMaterial(tasks, userTimezone, retries - 1, backoffDelay * 2);
+        return await generateTaskDigestMaterial(tasks, retries - 1, backoffDelay * 2);
       }
     }
 

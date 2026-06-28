@@ -2,8 +2,7 @@ const express = require('express');
 const router = express.Router();
 const Habit = require('../models/Habit');
 const Task = require('../models/Task');
-const { format } = require('date-fns');
-const { toZonedTime, fromZonedTime } = require('date-fns-tz');
+const { format, addDays } = require('date-fns');
 
 // POST /api/cron/generate-habits
 // This endpoint is meant to be hit by a cron service (like cron-job.org or GitHub Actions)
@@ -25,9 +24,15 @@ router.post('/generate-habits', async (req, res) => {
     let generatedCount = 0;
 
     for (const habit of habits) {
-      const userTimezone = habit.timezone || 'UTC';
-      const zonedNow = toZonedTime(now, userTimezone);
-      const userDateStr = format(zonedNow, 'yyyy-MM-dd'); // User's local date
+      // Parse the stored timezoneOffset (e.g., '+05:30') into minutes
+      const offsetMatch = (habit.timezoneOffset || '+00:00').match(/^([+-])(\d{2}):(\d{2})$/);
+      const offsetMinutes = offsetMatch 
+        ? (offsetMatch[1] === '+' ? 1 : -1) * (parseInt(offsetMatch[2]) * 60 + parseInt(offsetMatch[3]))
+        : 0;
+
+      // Get user's local "now" by adding their offset to UTC
+      const userLocalNow = new Date(now.getTime() + offsetMinutes * 60000);
+      const userDateStr = format(userLocalNow, 'yyyy-MM-dd');
 
       // Skip if already generated for this user's specific local day
       if (habit.lastGeneratedDate === userDateStr) {
@@ -36,14 +41,13 @@ router.post('/generate-habits', async (req, res) => {
 
       // 3. Check frequency (skip if weekly and today is not Monday)
       if (habit.frequency === 'weekly') {
-        const todayDay = zonedNow.getDay();
-        // Assuming weekly habits generate on Monday (1)
+        const todayDay = userLocalNow.getDay();
         if (todayDay !== 1) continue;
       }
 
-      // 4. Calculate deadline securely inside the user's timezone
-      const localDateString = `${userDateStr}T${habit.deadlineTime}:00`;
-      const deadline = fromZonedTime(localDateString, userTimezone);
+      // 4. Calculate deadline in UTC using offset arithmetic
+      const localDeadlineMs = new Date(`${userDateStr}T${habit.deadlineTime}:00Z`).getTime();
+      const deadline = new Date(localDeadlineMs - offsetMinutes * 60000);
 
       // 5. Create new Task
       const newTask = new Task({
@@ -52,7 +56,6 @@ router.post('/generate-habits', async (req, res) => {
         title: habit.title,
         description: habit.description || 'Recurring Habit',
         deadline: deadline,
-        timezone: userTimezone,
         complexity: habit.complexity,
         technicalEffort: habit.technicalEffort,
         status: 'pending'

@@ -2,11 +2,12 @@ const Reminder = require('../models/Reminder');
 const Task = require('../models/Task');
 const mongoose = require('mongoose');
 const { parseReminderMessage } = require('../services/geminiService');
+const { parseLocalToUTC } = require('../utils/dateUtils');
 
 // Handle Chat for Reminders
 exports.handleReminderChat = async (req, res) => {
   try {
-    const { message, history, localTime, timezone, timezoneOffset } = req.body;
+    const { message, history, localTime, timezoneOffset } = req.body;
     const userId = req.user.id;
 
     if (!message || message.length > 500) {
@@ -15,8 +16,8 @@ exports.handleReminderChat = async (req, res) => {
 
     // Fetch context - Limit to top 5 most urgent tasks
     const activeTasks = await Task.find({ userId, status: 'pending' })
-      .select('title deadline priorityScore')
-      .sort({ deadline: 1, priorityScore: -1 })
+      .select('title deadline')
+      .sort({ deadline: 1 })
       .limit(5);
     const activeReminders = await Reminder.find({ userId, status: 'active' });
 
@@ -27,9 +28,7 @@ exports.handleReminderChat = async (req, res) => {
       safeHistory, 
       activeTasks, 
       activeReminders, 
-      timezone, 
-      localTime,
-      timezoneOffset
+      localTime
     );
 
     const { action, conversationalReply, voiceReply, extractedReminderCreate, extractedReminderUpdate, extractedReminderDismiss } = aiResponse;
@@ -41,7 +40,7 @@ exports.handleReminderChat = async (req, res) => {
       const newReminder = new Reminder({
         userId,
         title: extractedReminderCreate.title,
-        remindAt: new Date(extractedReminderCreate.remindAt),
+        remindAt: parseLocalToUTC(extractedReminderCreate.remindAt, timezoneOffset),
         snoozable: extractedReminderCreate.snoozable !== undefined ? extractedReminderCreate.snoozable : true
       });
       await newReminder.save();
@@ -52,7 +51,7 @@ exports.handleReminderChat = async (req, res) => {
       if (mongoose.Types.ObjectId.isValid(reminderId)) {
         const updateData = {};
         if (title) updateData.title = title;
-        if (remindAt) updateData.remindAt = new Date(remindAt);
+        if (remindAt) updateData.remindAt = parseLocalToUTC(remindAt, timezoneOffset);
 
         await Reminder.findOneAndUpdate({ _id: reminderId, userId }, updateData);
       }

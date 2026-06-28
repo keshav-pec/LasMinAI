@@ -22,9 +22,9 @@ const HabitSchema = new mongoose.Schema({
     type: String,
     required: true, // e.g., "18:00"
   },
-  timezone: {
+  timezoneOffset: {
     type: String,
-    default: 'UTC',
+    default: '+00:00', // Stored as '+HH:MM' or '-HH:MM', sent by the browser on creation
   },
   complexity: {
     type: Number,

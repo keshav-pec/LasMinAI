@@ -68,9 +68,15 @@ export default function ProfileDashboard({ userData }) {
     e.preventDefault();
     setIsCreating(true);
     try {
+      const offsetMinutes = new Date().getTimezoneOffset();
+      const sign = offsetMinutes > 0 ? '-' : '+';
+      const absOffset = Math.abs(offsetMinutes);
+      const hrs = String(Math.floor(absOffset / 60)).padStart(2, '0');
+      const mins = String(absOffset % 60).padStart(2, '0');
+
       const payload = {
         ...newHabit,
-        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone
+        timezoneOffset: `${sign}${hrs}:${mins}`
       };
 
       const res = await axios.post(`${import.meta.env.VITE_API_URL || 'http://localhost:5050'}/api/habits`, payload, {

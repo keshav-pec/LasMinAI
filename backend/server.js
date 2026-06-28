@@ -16,6 +16,7 @@ const reportRoutes = require('./routes/reportRoutes');
 const habitRoutes = require('./routes/habitRoutes');
 const extensionRoutes = require('./routes/extensionRoutes');
 const { startEmailWorker } = require('./services/emailWorker');
+const { startZombieSweeper } = require('./services/zombieSweeper');
 
 const app = express();
 
@@ -27,7 +28,7 @@ app.use(cors({
   origin: FRONTEND_URL, // Frontend URL
   credentials: true
 }));
-app.use(express.json()); // Parses incoming JSON requests
+app.use(express.json({ limit: '2mb' })); // Parses incoming JSON requests with a size limit
 app.use(cookieParser());
 
 // MongoDB Connection
@@ -53,20 +54,22 @@ const generalApiLimiter = rateLimit({
   legacyHeaders: false,
 });
 
+const { aiQueueMiddleware } = require('./utils/aiQueueMiddleware');
+
 app.use('/api/tasks', taskRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/cron', require('./routes/cronRoutes'));
-app.use('/api/chat', aiLimiter, chatRoutes);
-app.use('/api/workstation', aiLimiter, workstationRoutes);
-app.use('/api/reminders/chat', aiLimiter); // Strict rate limit for AI
-app.use('/api/voice', aiLimiter, voiceRoutes);
-app.use('/api/autofill', aiLimiter, autofillRoutes);
+app.use('/api/chat', aiLimiter, aiQueueMiddleware, chatRoutes);
+app.use('/api/workstation', aiLimiter, aiQueueMiddleware, workstationRoutes);
+app.use('/api/reminders/chat', aiLimiter, aiQueueMiddleware); // Strict rate limit for AI
+app.use('/api/voice', aiLimiter, aiQueueMiddleware, voiceRoutes);
+app.use('/api/autofill', aiLimiter, aiQueueMiddleware, autofillRoutes);
 app.use('/api/reminders', generalApiLimiter, reminderRoutes); // General limit for CRUD
 app.use('/api/user', generalApiLimiter, userRoutes);
 app.use('/api/reports', generalApiLimiter, reportRoutes);
 app.use('/api/habits', generalApiLimiter, habitRoutes);
-app.use('/api/extension', aiLimiter, extensionRoutes);
+app.use('/api/extension', aiLimiter, aiQueueMiddleware, extensionRoutes);
 
 // Basic Health Check Route
 app.get('/api/health', (req, res) => {
@@ -79,4 +82,7 @@ app.listen(PORT, () => {
   
   // Start the background email sweep worker
   startEmailWorker();
+
+  // Start the background zombie sweeper worker
+  startZombieSweeper();
 });

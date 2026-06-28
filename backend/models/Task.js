@@ -24,10 +24,7 @@ const TaskSchema = new mongoose.Schema({
     max: 5,
     default: 3,
   },
-  timezone: {
-    type: String,
-    default: 'UTC',
-  },
+
   technicalEffort: {
     type: Number,
     required: true,
@@ -40,10 +37,7 @@ const TaskSchema = new mongoose.Schema({
     enum: ['pending', 'in-progress', 'completed', 'overdue'],
     default: 'pending',
   },
-  priorityScore: {
-    type: Number,
-    default: 0,
-  },
+
   digestSent: {
     type: Boolean,
     default: false,
@@ -67,6 +61,10 @@ const TaskSchema = new mongoose.Schema({
   }
 }, { timestamps: true });
 
+// Compound index for querying a user's tasks by status (e.g., getting all pending tasks for a user)
 TaskSchema.index({ userId: 1, status: 1 });
+
+// Compound index to optimize the Zombie Sweeper (finding overdue pending tasks)
+TaskSchema.index({ userId: 1, status: 1, deadline: 1 });
 
 module.exports = mongoose.model('Task', TaskSchema);

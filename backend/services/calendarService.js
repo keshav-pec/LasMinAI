@@ -1,6 +1,6 @@
 const { google } = require('googleapis');
 
-const pushScheduleToCalendar = async (oauth2Client, aiScheduleEvents, userTimezone = 'Asia/Kolkata') => {
+const pushScheduleToCalendar = async (oauth2Client, aiScheduleEvents) => {
   const calendar = google.calendar({ version: 'v3', auth: oauth2Client });
   const successfullyInserted = [];
 

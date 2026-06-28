@@ -1,7 +1,6 @@
 const Habit = require('../models/Habit');
 const Task = require('../models/Task');
 const { format, addDays } = require('date-fns');
-const { toZonedTime, fromZonedTime } = require('date-fns-tz');
 
 // Get all habits for the user
 const getHabits = async (req, res) => {
@@ -17,7 +16,7 @@ const getHabits = async (req, res) => {
 // Create a new habit
 const createHabit = async (req, res) => {
   try {
-    const { title, description, frequency, deadlineTime, complexity, technicalEffort, timezone } = req.body;
+    const { title, description, frequency, deadlineTime, complexity, technicalEffort, timezoneOffset } = req.body;
     
     if (!title || !deadlineTime) {
       return res.status(400).json({ success: false, message: 'Title and deadline time are required.' });
@@ -36,33 +35,39 @@ const createHabit = async (req, res) => {
       description,
       frequency,
       deadlineTime,
-      timezone: timezone || 'UTC',
+      timezoneOffset: timezoneOffset || '+00:00',
       complexity,
       technicalEffort
     });
 
+    // Parse the timezoneOffset (e.g., '+05:30' or '-04:00') to minutes
+    const offsetMatch = (timezoneOffset || '+00:00').match(/^([+-])(\d{2}):(\d{2})$/);
+    const offsetMinutes = offsetMatch 
+      ? (offsetMatch[1] === '+' ? 1 : -1) * (parseInt(offsetMatch[2]) * 60 + parseInt(offsetMatch[3]))
+      : 0;
+
+    // Get the user's local "now" by adding their offset to UTC
     const now = new Date();
-    const userTimezone = newHabit.timezone;
-    const zonedNow = toZonedTime(now, userTimezone);
-    const todayDateStr = format(zonedNow, 'yyyy-MM-dd');
+    const userLocalNow = new Date(now.getTime() + offsetMinutes * 60000);
+    const todayDateStr = format(userLocalNow, 'yyyy-MM-dd');
     
-    // Parse the deadline for today
-    const localTodayDeadlineStr = `${todayDateStr}T${deadlineTime}:00`;
-    const todayDeadline = fromZonedTime(localTodayDeadlineStr, userTimezone);
+    // Build the local deadline string and convert to UTC by subtracting the offset
+    const localTodayDeadlineMs = new Date(`${todayDateStr}T${deadlineTime}:00Z`).getTime();
+    const todayDeadlineUTC = new Date(localTodayDeadlineMs - offsetMinutes * 60000);
     
     let targetDeadline;
     let targetDateStr;
 
-    if (todayDeadline > now) {
+    if (todayDeadlineUTC > now) {
       // Deadline hasn't passed today yet, spawn for today
-      targetDeadline = todayDeadline;
+      targetDeadline = todayDeadlineUTC;
       targetDateStr = todayDateStr;
     } else {
       // Deadline has passed today, spawn for tomorrow
-      const zonedTomorrow = addDays(zonedNow, 1);
-      targetDateStr = format(zonedTomorrow, 'yyyy-MM-dd');
-      const localTomorrowDeadlineStr = `${targetDateStr}T${deadlineTime}:00`;
-      targetDeadline = fromZonedTime(localTomorrowDeadlineStr, userTimezone);
+      const userLocalTomorrow = addDays(userLocalNow, 1);
+      targetDateStr = format(userLocalTomorrow, 'yyyy-MM-dd');
+      const localTomorrowDeadlineMs = new Date(`${targetDateStr}T${deadlineTime}:00Z`).getTime();
+      targetDeadline = new Date(localTomorrowDeadlineMs - offsetMinutes * 60000);
     }
     
     // Create the instant task
@@ -72,7 +77,6 @@ const createHabit = async (req, res) => {
       title: newHabit.title,
       description: newHabit.description || 'Recurring Habit',
       deadline: targetDeadline,
-      timezone: userTimezone,
       complexity: newHabit.complexity,
       technicalEffort: newHabit.technicalEffort,
       status: 'pending'

@@ -244,7 +244,7 @@ export default function RemindersAssistant({ user }) {
       setTriggeredReminder((prev) => (prev && prev._id === id ? null : prev));
       if (!isBroadcast) {
         await axios.put(`${import.meta.env.VITE_API_URL}/api/reminders/${id}/snooze`, {}, { withCredentials: true });
-        toast.success("Snoozed for 10 minutes", { icon: '⏰' });
+        toast.success("Snoozed for 5 minutes", { icon: '⏰' });
         broadcastReminderAction('SNOOZED', { id });
         fetchReminders();
       } else {
@@ -292,23 +292,27 @@ export default function RemindersAssistant({ user }) {
     setIsProcessing(true);
 
     try {
-      const localDate = new Date();
-      const explicitTime = localDate.toLocaleString('en-US', { 
+      const localTime = new Date().toLocaleString('en-US', { 
         weekday: 'long', 
         year: 'numeric', 
         month: 'long', 
         day: 'numeric', 
         hour: 'numeric', 
         minute: 'numeric', 
-        second: 'numeric', 
-        timeZoneName: 'long' 
+        second: 'numeric'
       });
+      const offsetMinutes = new Date().getTimezoneOffset();
+      const sign = offsetMinutes > 0 ? '-' : '+';
+      const absOffset = Math.abs(offsetMinutes);
+      const hours = String(Math.floor(absOffset / 60)).padStart(2, '0');
+      const minutes = String(absOffset % 60).padStart(2, '0');
+      const timezoneOffset = `${sign}${hours}:${minutes}`;
 
       const res = await axios.post(`${import.meta.env.VITE_API_URL}/api/reminders/chat`, {
         message: textToSubmit,
         history,
-        localTime: explicitTime,
-        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone
+        localTime,
+        timezoneOffset,
       }, { withCredentials: true });
 
       if (res.data.success) {
@@ -368,7 +372,8 @@ export default function RemindersAssistant({ user }) {
                         ol: ({node, ...props}) => <ol className="list-decimal pl-4 mb-2 space-y-1" {...props} />,
                         li: ({node, ...props}) => <li {...props} />,
                         strong: ({node, ...props}) => <strong className="font-bold text-blue-600 dark:text-blue-400" {...props} />,
-                        code: ({node, inline, ...props}) => <code className="bg-black/10 dark:bg-white/10 px-1.5 py-0.5 rounded-md text-xs font-mono font-semibold" {...props} />
+                        code: ({node, inline, ...props}) => <code className="bg-black/10 dark:bg-white/10 px-1.5 py-0.5 rounded-md text-xs font-mono font-semibold" {...props} />,
+                        a: ({node, ...props}) => <a className="text-blue-500 hover:text-blue-400 underline cursor-pointer" target="_blank" rel="noopener noreferrer" {...props} />
                       }}
                     >
                       {msg.content}

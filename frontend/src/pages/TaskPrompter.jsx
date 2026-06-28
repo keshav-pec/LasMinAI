@@ -55,7 +55,7 @@ export default function TaskPrompter({ userData }) {
     e.preventDefault();
     if (!inputValue.trim()) return;
 
-    const userText = inputValue;
+    const userText = inputValue.trim();
     
     // Grab context history
     const historyContext = messages.slice(-6).map(msg => ({
@@ -67,11 +67,11 @@ export default function TaskPrompter({ userData }) {
     setInputValue('');
     if (textareaRef.current) textareaRef.current.style.height = 'auto';
 
-    // FIX: Generate truly unique IDs to prevent the bubble overwrite bug
+    // Generate truly unique IDs to prevent the bubble overwrite bug
     const uniqueUserId = `user-${Date.now()}-${Math.random()}`;
     const uniqueLoadingId = `ai-${Date.now()}-${Math.random()}`;
 
-    // FIX: Batch the state update so the User and AI messages mount sequentially
+    // Batch the state update so the User and AI messages mount sequentially
     setMessages((prev) => [
       ...prev, 
       { id: uniqueUserId, role: 'user', content: userText },
@@ -79,19 +79,26 @@ export default function TaskPrompter({ userData }) {
     ]);
 
     try {
-      const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-      const localTime = new Date().toLocaleString('en-US', { timeZone: userTimezone });
+      const localTime = new Date().toLocaleString('en-US');
+      const offsetMinutes = new Date().getTimezoneOffset();
+      const sign = offsetMinutes > 0 ? '-' : '+';
+      const absOffset = Math.abs(offsetMinutes);
+      const hrs = String(Math.floor(absOffset / 60)).padStart(2, '0');
+      const mins = String(absOffset % 60).padStart(2, '0');
+      const timezoneOffset = `${sign}${hrs}:${mins}`;
 
-      const response = await axios.post(`${import.meta.env.VITE_API_URL}/api/chat`, { 
+      const res = await axios.post(`${import.meta.env.VITE_API_URL || 'http://localhost:5050'}/api/chat`, {
         message: userText,
         history: historyContext,
-        userTimezone,
-        localTime
-      }, { withCredentials: true });
+        localTime,
+        timezoneOffset
+      }, {
+        withCredentials: true
+      });
       
-      if (response.data.success) {
+      if (res.data.success) {
         setMessages((prev) => 
-          prev.map(msg => msg.id === uniqueLoadingId ? { ...msg, content: response.data.reply } : msg)
+          prev.map(msg => msg.id === uniqueLoadingId ? { ...msg, content: res.data.reply } : msg)
         );
       }
     } catch (error) {
@@ -134,7 +141,14 @@ export default function TaskPrompter({ userData }) {
                   : 'pt-1 text-neutral-800 dark:text-neutral-200 markdown-body'
               }`}>
                 {msg.role === 'ai' ? (
-                  <ReactMarkdown remarkPlugins={[remarkGfm]}>{msg.content}</ReactMarkdown>
+                  <ReactMarkdown 
+                    remarkPlugins={[remarkGfm]}
+                    components={{
+                      a: ({node, ...props}) => <a className="text-blue-500 hover:text-blue-400 underline cursor-pointer" target="_blank" rel="noopener noreferrer" {...props} />
+                    }}
+                  >
+                    {msg.content}
+                  </ReactMarkdown>
                 ) : (
                   msg.content
                 )}

@@ -2,10 +2,11 @@ const { parseWorkstationMessage } = require('../services/geminiService');
 const { getSortedPendingTasks } = require('../services/taskService');
 const { pushScheduleToCalendar } = require('../services/calendarService');
 const { oauth2Client, getUserTokens } = require('../routes/authRoutes');
+const { parseLocalToUTC } = require('../utils/dateUtils');
 
 exports.handleWorkstationChat = async (req, res) => {
   try {
-    const { message, history, userTimezone, localTime } = req.body;
+    const { message, history, localTime, timezoneOffset } = req.body;
 
     if (!message) {
       return res.status(400).json({ success: false, error: "Message is required." });
@@ -16,7 +17,7 @@ exports.handleWorkstationChat = async (req, res) => {
     dynamicallySortedTasks = dynamicallySortedTasks.slice(0, 10);
 
     // Pass everything to the AI Brain (Workstation Persona)
-    const aiAnalysis = await parseWorkstationMessage(message, history || [], dynamicallySortedTasks, userTimezone, localTime);
+    const aiAnalysis = await parseWorkstationMessage(message, history || [], dynamicallySortedTasks, localTime);
 
     let calendarLinks = [];
     let calendarStatus = "Awaiting user preference before scheduling.";
@@ -27,7 +28,13 @@ exports.handleWorkstationChat = async (req, res) => {
       const userTokens = await getUserTokens(req.user.id);
       if (userTokens && Object.keys(userTokens).length > 0) {
         oauth2Client.setCredentials(userTokens);
-        calendarLinks = await pushScheduleToCalendar(oauth2Client, aiAnalysis.calendarEvents, userTimezone);
+        // Convert AI naive local strings to accurate UTC for calendar syncing
+        const shiftedEvents = aiAnalysis.calendarEvents.map(e => ({
+          ...e,
+          startTime: parseLocalToUTC(e.startTime, timezoneOffset).toISOString(),
+          endTime: parseLocalToUTC(e.endTime, timezoneOffset).toISOString(),
+        }));
+        calendarLinks = await pushScheduleToCalendar(oauth2Client, shiftedEvents);
         calendarStatus = `Successfully synced ${calendarLinks.length} events to Google Calendar.`;
       } else {
         calendarStatus = "Skipped - No active Google session found. Please authenticate.";

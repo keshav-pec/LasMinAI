@@ -77,16 +77,21 @@ export default function WorkStation({ userData }) {
     ]);
 
     try {
-      const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-      const localTime = new Date().toLocaleString('en-US', { timeZone: userTimezone });
+      const localTime = new Date().toLocaleString('en-US');
+      const offsetMinutes = new Date().getTimezoneOffset();
+      const sign = offsetMinutes > 0 ? '-' : '+';
+      const absOffset = Math.abs(offsetMinutes);
+      const hrs = String(Math.floor(absOffset / 60)).padStart(2, '0');
+      const mins = String(absOffset % 60).padStart(2, '0');
+      const timezoneOffset = `${sign}${hrs}:${mins}`;
 
       setIsTyping(true);
 
       const response = await axios.post(`${import.meta.env.VITE_API_URL}/api/workstation/chat`, { 
         message: userText,
         history: historyContext,
-        userTimezone,
-        localTime
+        localTime,
+        timezoneOffset,
       }, { withCredentials: true });
       
       setIsTyping(false);
@@ -146,7 +151,13 @@ export default function WorkStation({ userData }) {
                 }`}>
                   {msg.role === 'ai' ? (
                     <div className="prose prose-neutral dark:prose-invert max-w-none prose-p:leading-relaxed prose-pre:bg-[#1E1F20] prose-pre:border prose-pre:border-neutral-800">
-                      <ReactMarkdown>{msg.content}</ReactMarkdown>
+                      <ReactMarkdown
+                        components={{
+                          a: ({node, ...props}) => <a className="text-blue-500 hover:text-blue-400 underline cursor-pointer" target="_blank" rel="noopener noreferrer" {...props} />
+                        }}
+                      >
+                        {msg.content}
+                      </ReactMarkdown>
                     </div>
                   ) : (
                     msg.content

@@ -1,32 +1,26 @@
 const { parseUserMessage } = require('../services/geminiService');
 const Task = require('../models/Task');
 const { calculatePriorityScore } = require('../utils/priorityCalculator');
+const { parseLocalToUTC } = require('../utils/dateUtils');
 
 exports.handleChatMessage = async (req, res) => {
   try {
-    const { message, history, userTimezone, localTime, timezoneOffset } = req.body;
+    const { message, history, localTime, timezoneOffset } = req.body;
 
     if (!message) {
       return res.status(400).json({ success: false, error: "Message is required." });
     }
 
     // ==========================================
-    // THE ZOMBIE SWEEPER
+    // FETCH LIVE TASKS
     // ==========================================
-    const now = new Date();
-    // 1. Find tasks that are pending but their deadline is in the past (Isolated to current user)
-    await Task.updateMany(
-      { userId: req.user.id, status: 'pending', deadline: { $lt: now } },
-      { $set: { status: 'overdue' } }
-    );
-
-    // 2. Fetch the newly cleaned live context. 
-    // We explicitly select _id so Gemini can use it for precise updates.
+    // 1. Fetch the newly cleaned live context. 
+    // We exclude internals but include title, description, deadline, etc.
     const liveTasks = await Task.find({ userId: req.user.id, status: { $ne: 'completed' } })
-                                .select('_id title deadline complexity technicalEffort status');
+                                .select('-__v -createdAt -updatedAt');
 
-    // 3. Pass everything to the AI Brain
-    const aiAnalysis = await parseUserMessage(message, history || [], liveTasks, userTimezone, localTime, timezoneOffset);
+    // 2. Pass everything to the AI Brain
+    const aiAnalysis = await parseUserMessage(message, history || [], liveTasks, localTime);
 
     // ==========================================
     // ACTION ROUTING
@@ -40,19 +34,18 @@ exports.handleChatMessage = async (req, res) => {
         const fallbackDate = new Date();
         fallbackDate.setHours(fallbackDate.getHours() + 24);
         deadline = fallbackDate.toISOString();
+      } else {
+        deadline = parseLocalToUTC(deadline, timezoneOffset).toISOString();
       }
       
       if (title) {
-        const priorityScore = calculatePriorityScore(deadline, complexity || 3, technicalEffort || 2);
         const newTask = new Task({
           userId: req.user.id,
           title,
           description: description || "",
           deadline,
-          timezone: userTimezone || 'UTC',
           complexity: complexity || 3,
           technicalEffort: technicalEffort || 2,
-          priorityScore
         });
         await newTask.save();
       }
@@ -69,18 +62,11 @@ exports.handleChatMessage = async (req, res) => {
         if (aiAnalysis.extractedTaskUpdate.description !== undefined) taskToUpdate.description = aiAnalysis.extractedTaskUpdate.description;
         if (aiAnalysis.extractedTaskUpdate.complexity) taskToUpdate.complexity = aiAnalysis.extractedTaskUpdate.complexity;
         if (aiAnalysis.extractedTaskUpdate.technicalEffort) taskToUpdate.technicalEffort = aiAnalysis.extractedTaskUpdate.technicalEffort;
-        if (aiAnalysis.extractedTaskUpdate.deadline) taskToUpdate.deadline = aiAnalysis.extractedTaskUpdate.deadline;
+        if (aiAnalysis.extractedTaskUpdate.deadline) taskToUpdate.deadline = parseLocalToUTC(aiAnalysis.extractedTaskUpdate.deadline, timezoneOffset);
         
-        // NEW: Apply status updates (e.g., marking as completed)
+        // Apply status updates (e.g., marking as completed)
         if (aiAnalysis.extractedTaskUpdate.status) {
             taskToUpdate.status = aiAnalysis.extractedTaskUpdate.status;
-        }
-        
-        // Recalculate priority if it's not completed
-        if (taskToUpdate.status !== 'completed') {
-            taskToUpdate.priorityScore = calculatePriorityScore(taskToUpdate.deadline, taskToUpdate.complexity, taskToUpdate.technicalEffort);
-        } else {
-            taskToUpdate.priorityScore = 0; // Deprioritize completed tasks
         }
         
         await taskToUpdate.save();
