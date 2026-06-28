@@ -149,7 +149,11 @@ export default function GlobalVoiceAssistant({ isAuthenticated }) {
         }
         
         // Play Native TTS 
-        const textToSpeak = response.data.replyVoice || response.data.reply;
+        // Remove Markdown syntax and common emojis so the TTS engine doesn't read them out loud
+        const textToSpeak = (response.data.replyVoice || response.data.reply)
+          .replace(/[*_#`~>]/g, '')
+          .replace(/[\u{1F300}-\u{1F9FF}]|[\u{2600}-\u{27BF}]/gu, '')
+          .trim();
         
         // Prevent browser freeze if text is empty
         if (!textToSpeak || textToSpeak.trim() === "") {

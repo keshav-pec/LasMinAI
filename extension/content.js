@@ -186,25 +186,66 @@ if (siteSettings.voice) {
     micBtn.classList.add('processing');
     document.getElementById('lasminai-status-text').innerText = "Processing...";
     
+    const localTime = new Date().toLocaleString('en-US');
+    const offsetMinutes = new Date().getTimezoneOffset();
+    const sign = offsetMinutes > 0 ? '-' : '+';
+    const absOffset = Math.abs(offsetMinutes);
+    const hours = String(Math.floor(absOffset / 60)).padStart(2, '0');
+    const minutes = String(absOffset % 60).padStart(2, '0');
+    const timezoneOffset = `${sign}${hours}:${minutes}`;
+
     safeSendMessage({ 
       type: 'PROXY_FETCH', 
-      url: '/api/agent/process',
+      url: '/api/voice/process',
       method: 'POST',
-      body: { command }
+      body: { message: command, localTime, timezoneOffset, sourceUrl: window.location.href }
     }, (response) => {
       isProcessing = false;
       micBtn.classList.remove('processing');
-      if (response && response.success) {
-        document.getElementById('lasminai-transcript').innerText = "Done!";
+      if (response && response.success && response.data) {
+        const replyText = response.data.reply || "Done!";
+        
+        // Convert basic markdown to HTML for the visual transcript
+        const visualHtml = replyText
+          .replace(/^### (.*$)/gim, '<h3 style="font-weight: bold; margin: 8px 0 4px 0;">$1</h3>')
+          .replace(/^## (.*$)/gim, '<h2 style="font-weight: bold; margin: 8px 0 4px 0;">$1</h2>')
+          .replace(/^# (.*$)/gim, '<h1 style="font-weight: bold; margin: 8px 0 4px 0;">$1</h1>')
+          .replace(/\*\*(.*?)\*\*/gim, '<strong>$1</strong>')
+          .replace(/\*(.*?)\*/gim, '<em>$1</em>')
+          .replace(/\n/gim, '<br />');
+
+        document.getElementById('lasminai-transcript').innerHTML = visualHtml;
+        
+        try {
+          // Remove Markdown syntax and common emojis so the TTS engine doesn't read them out loud
+          const cleanSpeechText = (response.data.replyVoice || replyText)
+            .replace(/[*_#`~>]/g, '')
+            .replace(/[\u{1F300}-\u{1F9FF}]|[\u{2600}-\u{27BF}]/gu, '')
+            .trim();
+
+          const utterance = new SpeechSynthesisUtterance(cleanSpeechText);
+          utterance.onend = () => {
+             setListeningState(false);
+          };
+          window.speechSynthesis.speak(utterance);
+        } catch(e) {
+          console.error("Speech synthesis failed", e);
+          setTimeout(() => setListeningState(false), 5000);
+        }
         
         // Handle Auto-fill JSON Command directly
-        if (response.data && response.data.action === 'AUTO_FILL') {
+        if (response.data.action === 'AUTO_FILL') {
           handleAutoFillResponse(response.data);
         }
       } else {
-        document.getElementById('lasminai-transcript').innerText = "Error: " + (response?.error || 'Unknown error');
+        const errorMsg = response?.error || 'Unknown error';
+        if (errorMsg.toLowerCase().includes('not authenticated') || errorMsg.toLowerCase().includes('unauthorized')) {
+            document.getElementById('lasminai-transcript').innerHTML = `<span style="color: #ef4444; font-weight: 600;">Auth Expired:</span> Please <a href="https://lasminai.vercel.app/auth" target="_blank" style="text-decoration: underline;">login to LasMinAI</a> again.`;
+        } else {
+            document.getElementById('lasminai-transcript').innerText = "Error: " + errorMsg;
+        }
+        setTimeout(() => setListeningState(false), 3000);
       }
-      setTimeout(() => setListeningState(false), 2000);
     });
   }
 } // End of siteSettings.voice check
@@ -586,6 +627,10 @@ async function handleExtractTasks() {
     toast.remove();
     if (response && response.success && response.data && response.data.tasks) {
       showExtractedTasksModal(response.data.tasks);
+    } else if (response && response.error === 'Not authenticated') {
+      if (confirm("LasMinAI: Your session expired. Please log in to the web app first. Click OK to open it.")) {
+        window.open('https://lasminai.vercel.app', '_blank');
+      }
     } else {
       alert("LasMinAI failed to extract tasks: " + (response?.error || response?.data?.message || "Unknown error"));
     }
@@ -656,7 +701,12 @@ function showExtractedTasksModal(tasks) {
     deadlineInput.type = 'datetime-local';
     if (task.deadline) {
       try {
-        const d = new Date(task.deadline);
+        let rawStr = task.deadline;
+        // If it's a pure YYYY-MM-DD date without time, assume end of day local time
+        if (rawStr.length === 10 && rawStr.includes('-')) {
+          rawStr += 'T23:59:59';
+        }
+        const d = new Date(rawStr);
         d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
         deadlineInput.value = d.toISOString().slice(0, 16);
       } catch (e) {}
@@ -675,7 +725,13 @@ function showExtractedTasksModal(tasks) {
 
     addBtn.onclick = () => {
       addBtn.innerText = 'Adding...';
-      const dl = deadlineInput.value ? new Date(deadlineInput.value).toISOString() : new Date().toISOString();
+      let defaultDl = new Date();
+      if (defaultDl.getHours() >= 20) {
+        defaultDl.setDate(defaultDl.getDate() + 1); // Push to tomorrow if it's late
+      }
+      defaultDl.setHours(23, 59, 59, 999);
+      
+      const dl = deadlineInput.value ? new Date(deadlineInput.value).toISOString() : defaultDl.toISOString();
       queueMessage({
         type: 'PROXY_FETCH',
         url: '/api/tasks',
@@ -685,7 +741,8 @@ function showExtractedTasksModal(tasks) {
           description: descInput.value,
           deadline: dl,
           complexity: task.complexity || 3,
-          technicalEffort: task.technicalEffort || 2
+          technicalEffort: task.technicalEffort || 2,
+          sourceUrl: window.location.href
         }
       }, (resp) => {
         // FIX: Also check resp.data.success to ensure the actual server request succeeded

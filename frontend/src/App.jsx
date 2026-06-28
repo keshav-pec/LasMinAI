@@ -29,10 +29,13 @@ export default function App() {
         const data = await response.json();
         if (data.authenticated) {
           setUserData(data.user);
-          toast.success(`Welcome back, ${data.user.name.split(' ')[0]}!`, { 
-            icon: '👋',
-            id: 'welcome-toast' // Prevents duplicate toasts in React StrictMode
-          });
+          if (!sessionStorage.getItem('hasWelcomed')) {
+            toast.success(`Welcome back, ${data.user.name.split(' ')[0]}!`, { 
+              icon: '👋',
+              id: 'welcome-toast' // Prevents duplicate toasts in React StrictMode
+            });
+            sessionStorage.setItem('hasWelcomed', 'true');
+          }
         }
       } catch (error) {
         toast.error("Could not connect to the server.", { icon: '🔌', id: 'server-error-toast' });

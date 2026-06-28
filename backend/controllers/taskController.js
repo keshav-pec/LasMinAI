@@ -5,7 +5,7 @@ const { getSortedPendingTasks } = require('../services/taskService');
 // Create a new task and compute its initial priority score
 exports.createTask = async (req, res) => {
   try {
-    const { title, description, deadline, complexity, technicalEffort } = req.body;
+    const { title, description, deadline, complexity, technicalEffort, sourceUrl } = req.body;
 
     // Validate inputs
     if (!title || typeof title !== 'string' || title.trim().length === 0 || title.length > 200) {
@@ -28,6 +28,7 @@ exports.createTask = async (req, res) => {
       deadline,
       complexity,
       technicalEffort,
+      sourceUrl: sourceUrl || '',
     });
 
     await newTask.save();

@@ -46,6 +46,7 @@ exports.handleChatMessage = async (req, res) => {
           deadline,
           complexity: complexity || 3,
           technicalEffort: technicalEffort || 2,
+          sourceUrl: sourceUrl || "",
         });
         await newTask.save();
       }

@@ -7,13 +7,27 @@ import remarkGfm from 'remark-gfm';
 import toast from 'react-hot-toast';
 
 export default function TaskPrompter({ userData }) {
-  const [messages, setMessages] = useState([
-    { 
-      id: 'system-init', 
-      role: 'ai', 
-      content: `Ready to manage your tasks, ${userData?.name?.split(' ')[0] || 'Guest'}. What task are we prioritizing today?` 
+  const [messages, setMessages] = useState(() => {
+    const saved = localStorage.getItem('taskPrompterMessages');
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {
+        console.error("Failed to parse saved messages", e);
+      }
     }
-  ]);
+    return [
+      { 
+        id: 'system-init', 
+        role: 'ai', 
+        content: `Ready to manage your tasks, ${userData?.name?.split(' ')[0] || 'Guest'}. What task are we prioritizing today?` 
+      }
+    ];
+  });
+
+  useEffect(() => {
+    localStorage.setItem('taskPrompterMessages', JSON.stringify(messages));
+  }, [messages]);
   const [inputValue, setInputValue] = useState('');
   const [isListening, setIsListening] = useState(false);
   
@@ -26,14 +40,23 @@ export default function TaskPrompter({ userData }) {
   useEffect(() => {
     const rHandler = (e) => setRemindersCount(e.detail);
     const vHandler = (e) => setIsGlobalVoiceListening(e.detail);
+    const cHandler = () => {
+      setMessages([{ 
+        id: 'system-init', 
+        role: 'ai', 
+        content: `Ready to manage your tasks, ${userData?.name?.split(' ')[0] || 'Guest'}. What task are we prioritizing today?` 
+      }]);
+    };
     window.addEventListener('sync_reminders_count', rHandler);
     window.addEventListener('sync_voice_listening', vHandler);
+    window.addEventListener('clear_chat_history', cHandler);
     
     return () => {
       window.removeEventListener('sync_reminders_count', rHandler);
       window.removeEventListener('sync_voice_listening', vHandler);
+      window.removeEventListener('clear_chat_history', cHandler);
     }
-  }, []);
+  }, [userData]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -58,7 +81,7 @@ export default function TaskPrompter({ userData }) {
     const userText = inputValue.trim();
     
     // Grab context history
-    const historyContext = messages.slice(-6).map(msg => ({
+    const historyContext = messages.slice(-20).map(msg => ({
       role: msg.role,
       content: msg.content
     }));

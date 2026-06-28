@@ -9,13 +9,27 @@ import CalendarWidget from '../components/CalendarWidget';
 import { useTasks } from '../hooks/useTasks';
 
 export default function WorkStation({ userData }) {
-  const [messages, setMessages] = useState([
-    { 
-      id: 'system-init', 
-      role: 'ai', 
-      content: `Welcome to your Work Station, ${userData?.name?.split(' ')[0] || 'Guest'}. When are you available to work, and how would you like to tackle your pending tasks?` 
+  const [messages, setMessages] = useState(() => {
+    const saved = localStorage.getItem('workStationMessages');
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {
+        console.error("Failed to parse saved workstation messages", e);
+      }
     }
-  ]);
+    return [
+      { 
+        id: 'system-init', 
+        role: 'ai', 
+        content: `Welcome to your Work Station, ${userData?.name?.split(' ')[0] || 'Guest'}. When are you available to work, and how would you like to tackle your pending tasks?` 
+      }
+    ];
+  });
+
+  useEffect(() => {
+    localStorage.setItem('workStationMessages', JSON.stringify(messages));
+  }, [messages]);
   const [inputValue, setInputValue] = useState('');
   const [isListening, setIsListening] = useState(false);
   const [isTyping, setIsTyping] = useState(false);
@@ -31,14 +45,24 @@ export default function WorkStation({ userData }) {
   useEffect(() => {
     const rHandler = (e) => setRemindersCount(e.detail);
     const vHandler = (e) => setIsGlobalVoiceListening(e.detail);
+    const cHandler = () => {
+      setMessages([{ 
+        id: 'system-init', 
+        role: 'ai', 
+        content: `Welcome to your Work Station, ${userData?.name?.split(' ')[0] || 'Guest'}. When are you available to work, and how would you like to tackle your pending tasks?` 
+      }]);
+    };
+    
     window.addEventListener('sync_reminders_count', rHandler);
     window.addEventListener('sync_voice_listening', vHandler);
+    window.addEventListener('clear_chat_history', cHandler);
     
     return () => {
       window.removeEventListener('sync_reminders_count', rHandler);
       window.removeEventListener('sync_voice_listening', vHandler);
+      window.removeEventListener('clear_chat_history', cHandler);
     }
-  }, []);
+  }, [userData]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });

@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Moon, Sun, Zap, User, Settings, LogOut, Terminal as TerminalIcon, Download } from 'lucide-react';
+import { Moon, Sun, Zap, User, Settings, LogOut, Terminal as TerminalIcon, Download, Trash2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 export default function Navbar({ userData, setUserData }) {
@@ -84,6 +84,7 @@ export default function Navbar({ userData, setUserData }) {
     } catch (error) {
       toast.error('Logout failed.', { icon: '⚠️' });
     }
+    sessionStorage.removeItem('hasWelcomed');
     setUserData(null);
     setIsMenuOpen(false);
     navigate('/');
@@ -171,6 +172,18 @@ export default function Navbar({ userData, setUserData }) {
                     <Link to="/settings" onClick={() => setIsMenuOpen(false)} className="w-full flex items-center gap-3 px-3 py-2 text-sm text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-lg transition-colors text-left mt-1">
                       <Settings className="w-4 h-4" /> Settings
                     </Link>
+                    <button 
+                      onClick={() => {
+                        setIsMenuOpen(false);
+                        localStorage.removeItem('taskPrompterMessages');
+                        localStorage.removeItem('workStationMessages');
+                        window.dispatchEvent(new Event('clear_chat_history'));
+                        toast.success("Chat history cleared!");
+                      }} 
+                      className="w-full flex items-center gap-3 px-3 py-2 text-sm text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-lg transition-colors text-left mt-1"
+                    >
+                      <Trash2 className="w-4 h-4" /> Clear Chat
+                    </button>
                     <button onClick={handleLogout} className="w-full flex items-center gap-3 px-3 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition-colors text-left mt-1">
                       <LogOut className="w-4 h-4" /> Logout
                     </button>

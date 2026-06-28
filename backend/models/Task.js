@@ -24,6 +24,10 @@ const TaskSchema = new mongoose.Schema({
     max: 5,
     default: 3,
   },
+  sourceUrl: {
+    type: String,
+    default: '',
+  },
 
   technicalEffort: {
     type: Number,

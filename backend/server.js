@@ -19,13 +19,20 @@ const { startEmailWorker } = require('./services/emailWorker');
 const { startZombieSweeper } = require('./services/zombieSweeper');
 
 const app = express();
+app.set('trust proxy', 1); // Trust the first proxy (Render) to correctly identify client IPs for rate limiting
 
 const isProduction = process.env.NODE_ENV === 'production';
 const FRONTEND_URL = isProduction ? process.env.FRONTEND_URL : 'http://localhost:5174';
 
 // Middleware
 app.use(cors({
-  origin: FRONTEND_URL, // Frontend URL
+  origin: function(origin, callback) {
+    if (!origin || origin === FRONTEND_URL || origin.startsWith('chrome-extension://')) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   credentials: true
 }));
 app.use(express.json({ limit: '2mb' })); // Parses incoming JSON requests with a size limit
