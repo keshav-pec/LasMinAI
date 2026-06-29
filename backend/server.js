@@ -15,9 +15,6 @@ const userRoutes = require('./routes/userRoutes');
 const reportRoutes = require('./routes/reportRoutes');
 const habitRoutes = require('./routes/habitRoutes');
 const extensionRoutes = require('./routes/extensionRoutes');
-const { startEmailWorker } = require('./services/emailWorker');
-const { startZombieSweeper } = require('./services/zombieSweeper');
-
 const app = express();
 app.set('trust proxy', 1); // Trust the first proxy (Render) to correctly identify client IPs for rate limiting
 
@@ -86,10 +83,4 @@ app.get('/api/health', (req, res) => {
 const PORT = process.env.PORT || 5050;
 app.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
-  
-  // Start the background email sweep worker
-  startEmailWorker();
-
-  // Start the background zombie sweeper worker
-  startZombieSweeper();
 });

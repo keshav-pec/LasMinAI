@@ -2,6 +2,8 @@ const express = require('express');
 const router = express.Router();
 const Habit = require('../models/Habit');
 const Task = require('../models/Task');
+const { sweepEmails } = require('../services/emailWorker');
+const { sweepZombies } = require('../services/zombieSweeper');
 
 // POST /api/cron/generate-habits
 // This endpoint is meant to be hit by a cron service (like cron-job.org or GitHub Actions)
@@ -79,6 +81,32 @@ router.post('/generate-habits', async (req, res) => {
   } catch (error) {
     console.error('Cron generation error:', error);
     res.status(500).json({ success: false, message: 'Server error during generation.' });
+  }
+});
+
+
+// POST /api/cron/sweep
+// This endpoint is meant to be hit every minute by Google Cloud Scheduler
+router.post('/sweep', async (req, res) => {
+  try {
+    const authHeader = req.headers.authorization;
+    const cronSecret = process.env.CRON_SECRET;
+    
+    if (!cronSecret || !authHeader || authHeader !== `Bearer ${cronSecret}`) {
+      return res.status(401).json({ success: false, message: 'Unauthorized cron request.' });
+    }
+
+    // Run both sweeps concurrently. 
+    // We await them so the Cloud Run container stays awake during execution.
+    await Promise.all([
+      sweepEmails(),
+      sweepZombies()
+    ]);
+
+    res.json({ success: true, message: 'Sweep completed successfully.' });
+  } catch (error) {
+    console.error('Cron sweep error:', error);
+    res.status(500).json({ success: false, message: 'Server error during sweep.' });
   }
 });
 
