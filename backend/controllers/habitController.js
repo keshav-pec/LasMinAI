@@ -1,6 +1,5 @@
 const Habit = require('../models/Habit');
 const Task = require('../models/Task');
-const { format, addDays } = require('date-fns');
 
 // Get all habits for the user
 const getHabits = async (req, res) => {
@@ -49,7 +48,15 @@ const createHabit = async (req, res) => {
     // Get the user's local "now" by adding their offset to UTC
     const now = new Date();
     const userLocalNow = new Date(now.getTime() + offsetMinutes * 60000);
-    const todayDateStr = format(userLocalNow, 'yyyy-MM-dd');
+    
+    const formatUTCDate = (dateObj) => {
+      const yyyy = dateObj.getUTCFullYear();
+      const mm = String(dateObj.getUTCMonth() + 1).padStart(2, '0');
+      const dd = String(dateObj.getUTCDate()).padStart(2, '0');
+      return `${yyyy}-${mm}-${dd}`;
+    };
+
+    const todayDateStr = formatUTCDate(userLocalNow);
     
     // Build the local deadline string and convert to UTC by subtracting the offset
     const localTodayDeadlineMs = new Date(`${todayDateStr}T${deadlineTime}:00Z`).getTime();
@@ -64,8 +71,8 @@ const createHabit = async (req, res) => {
       targetDateStr = todayDateStr;
     } else {
       // Deadline has passed today, spawn for tomorrow
-      const userLocalTomorrow = addDays(userLocalNow, 1);
-      targetDateStr = format(userLocalTomorrow, 'yyyy-MM-dd');
+      const userLocalTomorrow = new Date(userLocalNow.getTime() + 24 * 60 * 60 * 1000);
+      targetDateStr = formatUTCDate(userLocalTomorrow);
       const localTomorrowDeadlineMs = new Date(`${targetDateStr}T${deadlineTime}:00Z`).getTime();
       targetDeadline = new Date(localTomorrowDeadlineMs - offsetMinutes * 60000);
     }

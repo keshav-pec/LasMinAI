@@ -2,7 +2,6 @@ const express = require('express');
 const router = express.Router();
 const Habit = require('../models/Habit');
 const Task = require('../models/Task');
-const { format, addDays } = require('date-fns');
 
 // POST /api/cron/generate-habits
 // This endpoint is meant to be hit by a cron service (like cron-job.org or GitHub Actions)
@@ -32,7 +31,13 @@ router.post('/generate-habits', async (req, res) => {
 
       // Get user's local "now" by adding their offset to UTC
       const userLocalNow = new Date(now.getTime() + offsetMinutes * 60000);
-      const userDateStr = format(userLocalNow, 'yyyy-MM-dd');
+      
+      // Extract YYYY-MM-DD strictly from the UTC components of the shifted date
+      // to avoid the server's local timezone from shifting it a second time.
+      const yyyy = userLocalNow.getUTCFullYear();
+      const mm = String(userLocalNow.getUTCMonth() + 1).padStart(2, '0');
+      const dd = String(userLocalNow.getUTCDate()).padStart(2, '0');
+      const userDateStr = `${yyyy}-${mm}-${dd}`;
 
       // Skip if already generated for this user's specific local day
       if (habit.lastGeneratedDate === userDateStr) {
