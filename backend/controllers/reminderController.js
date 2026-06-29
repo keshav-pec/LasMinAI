@@ -135,3 +135,62 @@ exports.snoozeReminder = async (req, res) => {
     res.status(500).json({ success: false, message: 'Internal Server Error' });
   }
 };
+
+// Fetch all reminders for a specific date range based on remindAt
+exports.getRemindersByDate = async (req, res) => {
+  try {
+    const { date } = req.query;
+    if (!date) {
+      return res.status(400).json({ success: false, message: 'Date parameter (YYYY-MM-DD) is required.' });
+    }
+
+    const startOfDay = new Date(date);
+    startOfDay.setUTCHours(0, 0, 0, 0);
+    const endOfDay = new Date(date);
+    endOfDay.setUTCHours(23, 59, 59, 999);
+
+    const reminders = await Reminder.find({
+      userId: req.user.id,
+      remindAt: { $gte: startOfDay, $lte: endOfDay }
+    }).sort({ createdAt: -1 });
+
+    res.status(200).json({ success: true, data: reminders });
+  } catch (error) {
+    console.error('Get Reminders By Date Error:', error);
+    res.status(500).json({ success: false, message: 'Internal Server Error' });
+  }
+};
+
+// Update a reminder completely
+exports.updateReminder = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { title, remindAt } = req.body;
+
+    const reminder = await Reminder.findOne({ _id: id, userId: req.user.id });
+    if (!reminder) return res.status(404).json({ success: false, message: 'Reminder not found' });
+
+    if (title) reminder.title = title;
+    if (remindAt) reminder.remindAt = remindAt;
+
+    await reminder.save();
+    res.status(200).json({ success: true, data: reminder });
+  } catch (error) {
+    console.error('Update Reminder Error:', error);
+    res.status(500).json({ success: false, message: 'Internal Server Error' });
+  }
+};
+
+// Delete a reminder
+exports.deleteReminder = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const reminder = await Reminder.findOneAndDelete({ _id: id, userId: req.user.id });
+    if (!reminder) return res.status(404).json({ success: false, message: 'Reminder not found' });
+
+    res.status(200).json({ success: true, message: 'Reminder deleted successfully' });
+  } catch (error) {
+    console.error('Delete Reminder Error:', error);
+    res.status(500).json({ success: false, message: 'Internal Server Error' });
+  }
+};

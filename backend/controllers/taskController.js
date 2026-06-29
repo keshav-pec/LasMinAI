@@ -105,3 +105,66 @@ exports.updateTaskStatus = async (req, res) => {
     res.status(500).json({ success: false, message: 'Internal Server Error' });
   }
 };
+
+// Fetch all tasks for a specific date range based on deadline
+exports.getTasksByDate = async (req, res) => {
+  try {
+    const { date } = req.query;
+    if (!date) {
+      return res.status(400).json({ success: false, message: 'Date parameter (YYYY-MM-DD) is required.' });
+    }
+
+    const startOfDay = new Date(date);
+    startOfDay.setUTCHours(0, 0, 0, 0);
+    const endOfDay = new Date(date);
+    endOfDay.setUTCHours(23, 59, 59, 999);
+
+    const tasks = await Task.find({
+      userId: req.user.id,
+      deadline: { $gte: startOfDay, $lte: endOfDay }
+    }).sort({ createdAt: -1 });
+
+    res.status(200).json({ success: true, data: tasks });
+  } catch (error) {
+    console.error('Get Tasks By Date Error:', error);
+    res.status(500).json({ success: false, message: 'Internal Server Error' });
+  }
+};
+
+// Update a task completely
+exports.updateTask = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { title, description, deadline, complexity, technicalEffort, sourceUrl } = req.body;
+
+    const task = await Task.findOne({ _id: id, userId: req.user.id });
+    if (!task) return res.status(404).json({ success: false, message: 'Task not found' });
+
+    if (title) task.title = title;
+    if (description !== undefined) task.description = description;
+    if (deadline) task.deadline = deadline;
+    if (complexity) task.complexity = complexity;
+    if (technicalEffort) task.technicalEffort = technicalEffort;
+    if (sourceUrl !== undefined) task.sourceUrl = sourceUrl;
+
+    await task.save();
+    res.status(200).json({ success: true, data: task });
+  } catch (error) {
+    console.error('Update Task Error:', error);
+    res.status(500).json({ success: false, message: 'Internal Server Error' });
+  }
+};
+
+// Delete a task
+exports.deleteTask = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const task = await Task.findOneAndDelete({ _id: id, userId: req.user.id });
+    if (!task) return res.status(404).json({ success: false, message: 'Task not found' });
+
+    res.status(200).json({ success: true, message: 'Task deleted successfully' });
+  } catch (error) {
+    console.error('Delete Task Error:', error);
+    res.status(500).json({ success: false, message: 'Internal Server Error' });
+  }
+};

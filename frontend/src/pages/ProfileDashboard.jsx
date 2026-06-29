@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Repeat, History, Loader2, Plus, Flame, Target, Trophy, Clock, Trash2, Calendar as CalendarIcon, ChevronDown, ChevronUp } from 'lucide-react';
+import { Repeat, History, Loader2, Plus, Flame, Target, Trophy, Clock, Trash2, Calendar as CalendarIcon, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Eye, Pencil, X } from 'lucide-react';
 import axios from 'axios';
 import toast from 'react-hot-toast';
 import CalendarHeatmap from 'react-calendar-heatmap';
@@ -19,6 +19,14 @@ export default function ProfileDashboard({ userData }) {
   const [isHeatmapExpanded, setIsHeatmapExpanded] = useState(false);
   const [isCreateExpanded, setIsCreateExpanded] = useState(false);
   const scrollContainerRef = useRef(null);
+
+  // History Tab State
+  const [historyDate, setHistoryDate] = useState(new Date());
+  const [historyType, setHistoryType] = useState('tasks');
+  const [historyItems, setHistoryItems] = useState([]);
+  const [isHistoryLoading, setIsHistoryLoading] = useState(false);
+  const [viewingItem, setViewingItem] = useState(null);
+  const [isEditingItem, setIsEditingItem] = useState(false);
 
   // Auto-scroll the heatmap to the current month (right side)
   useEffect(() => {
@@ -109,6 +117,69 @@ export default function ProfileDashboard({ userData }) {
 
   const toggleAccordion = (id) => {
     setExpandedHabits(prev => ({ ...prev, [id]: !prev[id] }));
+  };
+
+  const fetchHistory = async () => {
+    setIsHistoryLoading(true);
+    try {
+      const dateStr = format(historyDate, 'yyyy-MM-dd');
+      const endpoint = historyType === 'tasks' ? `/api/tasks?date=${dateStr}` : `/api/reminders/history?date=${dateStr}`;
+      const res = await axios.get(`${import.meta.env.VITE_API_URL}${endpoint}`, { withCredentials: true });
+      if (res.data.success) {
+        setHistoryItems(res.data.data);
+      }
+    } catch (err) {
+      toast.error("Failed to load history.");
+    } finally {
+      setIsHistoryLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab === 'history') fetchHistory();
+  }, [historyDate, historyType, activeTab]);
+
+  const handleDeleteHistoryItem = async (id) => {
+    if (!window.confirm("Are you sure you want to delete this?")) return;
+    try {
+      const endpoint = historyType === 'tasks' ? `/api/tasks/${id}` : `/api/reminders/${id}`;
+      const res = await axios.delete(`${import.meta.env.VITE_API_URL}${endpoint}`, { withCredentials: true });
+      if (res.data.success) {
+        toast.success("Deleted successfully");
+        setHistoryItems(historyItems.filter(item => item._id !== id));
+        if (viewingItem && viewingItem._id === id) setViewingItem(null);
+      }
+    } catch (err) {
+      toast.error("Failed to delete");
+    }
+  };
+
+  const handleUpdateHistoryItem = async (e) => {
+    e.preventDefault();
+    try {
+      const endpoint = historyType === 'tasks' ? `/api/tasks/${viewingItem._id}` : `/api/reminders/${viewingItem._id}`;
+      const payload = historyType === 'tasks' ? {
+        title: viewingItem.title,
+        description: viewingItem.description,
+        deadline: viewingItem.deadline,
+        sourceUrl: viewingItem.sourceUrl,
+        complexity: viewingItem.complexity,
+        technicalEffort: viewingItem.technicalEffort
+      } : {
+        title: viewingItem.title,
+        remindAt: viewingItem.remindAt
+      };
+      
+      const res = await axios.put(`${import.meta.env.VITE_API_URL}${endpoint}`, payload, { withCredentials: true });
+      if (res.data.success) {
+        toast.success("Updated successfully");
+        setHistoryItems(historyItems.map(item => item._id === viewingItem._id ? res.data.data : item));
+        setViewingItem(res.data.data);
+        setIsEditingItem(false);
+      }
+    } catch (err) {
+      toast.error("Failed to update");
+    }
   };
 
   const tabs = [
@@ -374,12 +445,87 @@ export default function ProfileDashboard({ userData }) {
 
               {/* HISTORY TAB */}
               {activeTab === 'history' && (
-                <div className="space-y-6 flex flex-col items-center justify-center py-12 opacity-50">
-                  <History className="w-16 h-16 text-neutral-400" />
-                  <h2 className="text-xl font-semibold text-neutral-900 dark:text-white">History is currently empty</h2>
-                  <p className="text-sm text-neutral-500 text-center max-w-sm">
-                    As you complete tasks and habits, your historical activity will appear here. Check back later!
-                  </p>
+                <div className="space-y-6">
+                  {/* Date Navigation & Type Selector */}
+                  <div className="flex flex-col sm:flex-row items-center justify-between gap-4 bg-neutral-50 dark:bg-neutral-800/30 p-4 rounded-xl border border-neutral-100 dark:border-neutral-700/50">
+                    <div className="flex items-center gap-4">
+                      <button onClick={() => setHistoryDate(subDays(historyDate, 1))} className="p-2 rounded-lg hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors">
+                        <ChevronLeft className="w-5 h-5 text-neutral-600 dark:text-neutral-300" />
+                      </button>
+                      <input 
+                        type="date"
+                        value={format(historyDate, 'yyyy-MM-dd')}
+                        onChange={(e) => {
+                          if (e.target.value) {
+                            // Ensure the date is interpreted as local time by avoiding Z
+                            const newDate = new Date(e.target.value + 'T12:00:00');
+                            setHistoryDate(newDate);
+                          }
+                        }}
+                        className="font-medium text-neutral-900 dark:text-white min-w-[140px] text-center bg-transparent border-none focus:ring-0 cursor-pointer dark:[color-scheme:dark] px-2 py-1 hover:bg-neutral-200 dark:hover:bg-neutral-700 rounded transition-colors"
+                      />
+                      <button onClick={() => setHistoryDate(new Date(historyDate.getTime() + 86400000))} className="p-2 rounded-lg hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors">
+                        <ChevronRight className="w-5 h-5 text-neutral-600 dark:text-neutral-300" />
+                      </button>
+                    </div>
+                    <div className="flex items-center gap-2 w-full sm:w-auto">
+                      <select 
+                        value={historyType} 
+                        onChange={e => setHistoryType(e.target.value)}
+                        className="w-full sm:w-auto px-4 py-2 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-lg text-sm font-medium focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:text-white"
+                      >
+                        <option value="tasks">Tasks</option>
+                        <option value="reminders">Reminders</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* History List */}
+                  {isHistoryLoading ? (
+                    <div className="flex justify-center p-12"><Loader2 className="w-8 h-8 animate-spin text-blue-500" /></div>
+                  ) : historyItems.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-12 opacity-50">
+                      <History className="w-16 h-16 text-neutral-400 mb-4" />
+                      <h2 className="text-xl font-semibold text-neutral-900 dark:text-white">No {historyType} found</h2>
+                      <p className="text-sm text-neutral-500 text-center mt-2">
+                        You don't have any {historyType} scheduled for this date.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {historyItems.map(item => {
+                        const isCompleted = item.status === 'completed' || item.status === 'dismissed';
+                        const isOverdue = item.status === 'overdue' || (item.status === 'active' && new Date(item.remindAt) < new Date());
+                        let statusColor = 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400';
+                        if (isCompleted) statusColor = 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400';
+                        else if (isOverdue) statusColor = 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400';
+
+                        return (
+                          <div key={item._id} className="group flex items-center justify-between p-4 bg-white dark:bg-neutral-800/50 border border-neutral-200 dark:border-neutral-700 rounded-xl hover:border-neutral-300 dark:hover:border-neutral-600 transition-colors">
+                            <div className="flex items-center gap-4">
+                              <div className={`p-2 rounded-lg ${statusColor}`}>
+                                {historyType === 'tasks' ? <Target className="w-4 h-4" /> : <Clock className="w-4 h-4" />}
+                              </div>
+                              <div>
+                                <h4 className="font-medium text-neutral-900 dark:text-white">{item.title}</h4>
+                                <p className="text-xs text-neutral-500 mt-0.5">
+                                  {historyType === 'tasks' ? 
+                                    (item.deadline ? format(new Date(item.deadline), 'h:mm a') : 'No deadline') : 
+                                    (item.remindAt ? format(new Date(item.remindAt), 'h:mm a') : 'No time')
+                                  }
+                                </p>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                              <button onClick={() => { setViewingItem(item); setIsEditingItem(false); }} className="p-2 text-neutral-500 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-lg transition-colors" title="View/Edit">
+                                <Eye className="w-4 h-4" />
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -387,6 +533,205 @@ export default function ProfileDashboard({ userData }) {
           </AnimatePresence>
         </div>
       </div>
+
+      {/* View / Edit Modal */}
+      <AnimatePresence>
+        {viewingItem && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="bg-white dark:bg-neutral-900 rounded-2xl w-full max-w-md overflow-hidden shadow-2xl border border-neutral-200 dark:border-neutral-800"
+            >
+              <div className="flex items-center justify-between p-5 border-b border-neutral-100 dark:border-neutral-800">
+                <h3 className="text-lg font-semibold text-neutral-900 dark:text-white">
+                  {isEditingItem ? `Edit ${historyType === 'tasks' ? 'Task' : 'Reminder'}` : `${historyType === 'tasks' ? 'Task' : 'Reminder'} Details`}
+                </h3>
+                <div className="flex items-center gap-2">
+                  {!isEditingItem && (
+                    <button onClick={() => setIsEditingItem(true)} className="p-2 text-neutral-500 hover:text-blue-600 bg-neutral-100 hover:bg-blue-50 dark:bg-neutral-800 dark:hover:bg-blue-900/30 rounded-lg transition-colors" title="Edit">
+                      <Pencil className="w-4 h-4" />
+                    </button>
+                  )}
+                  <button onClick={() => { setViewingItem(null); setIsEditingItem(false); }} className="p-2 text-neutral-500 hover:text-red-600 bg-neutral-100 hover:bg-red-50 dark:bg-neutral-800 dark:hover:bg-red-900/30 rounded-lg transition-colors" title="Close">
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+              
+              <div className="p-5">
+                {isEditingItem ? (
+                  <form onSubmit={handleUpdateHistoryItem} className="space-y-4">
+                    <div>
+                      <label className="block text-xs font-medium text-neutral-500 mb-1">Title</label>
+                      <input 
+                        type="text" required
+                        value={viewingItem.title} 
+                        onChange={e => setViewingItem({...viewingItem, title: e.target.value})}
+                        className="w-full px-3 py-2 bg-neutral-50 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-lg text-sm dark:text-white focus:ring-2 focus:ring-blue-500"
+                      />
+                    </div>
+                    {historyType === 'tasks' && (
+                      <>
+                        <div>
+                          <label className="block text-xs font-medium text-neutral-500 mb-1">Description</label>
+                          <textarea 
+                            value={viewingItem.description || ''} 
+                            onChange={e => setViewingItem({...viewingItem, description: e.target.value})}
+                            className="w-full px-3 py-2 bg-neutral-50 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-lg text-sm dark:text-white focus:ring-2 focus:ring-blue-500 min-h-[80px]"
+                          />
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <label className="block text-xs font-medium text-neutral-500 mb-1">Deadline Date</label>
+                            <input 
+                              type="date" required
+                              value={viewingItem.deadline ? format(new Date(viewingItem.deadline), 'yyyy-MM-dd') : ''}
+                              onChange={e => setViewingItem({
+                                ...viewingItem, 
+                                deadline: new Date(e.target.value + 'T' + (viewingItem.deadline ? format(new Date(viewingItem.deadline), 'HH:mm') : '12:00')).toISOString()
+                              })}
+                              className="w-full px-3 py-2 bg-neutral-50 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-lg text-sm dark:text-white dark:[color-scheme:dark]"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-xs font-medium text-neutral-500 mb-1">Time</label>
+                            <input 
+                              type="time" required
+                              value={viewingItem.deadline ? format(new Date(viewingItem.deadline), 'HH:mm') : ''}
+                              onChange={e => setViewingItem({
+                                ...viewingItem, 
+                                deadline: new Date((viewingItem.deadline ? format(new Date(viewingItem.deadline), 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd')) + 'T' + e.target.value).toISOString()
+                              })}
+                              className="w-full px-3 py-2 bg-neutral-50 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-lg text-sm dark:text-white dark:[color-scheme:dark]"
+                            />
+                          </div>
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium text-neutral-500 mb-1">Source URL</label>
+                          <input 
+                            type="url"
+                            value={viewingItem.sourceUrl || ''} 
+                            onChange={e => setViewingItem({...viewingItem, sourceUrl: e.target.value})}
+                            className="w-full px-3 py-2 bg-neutral-50 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-lg text-sm dark:text-white focus:ring-2 focus:ring-blue-500"
+                          />
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <label className="block text-xs font-medium text-neutral-500 mb-1">Complexity (1-5)</label>
+                            <input 
+                              type="number" min="1" max="5" required
+                              value={viewingItem.complexity || 3} 
+                              onChange={e => setViewingItem({...viewingItem, complexity: parseInt(e.target.value)})}
+                              className="w-full px-3 py-2 bg-neutral-50 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-lg text-sm dark:text-white focus:ring-2 focus:ring-blue-500"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-xs font-medium text-neutral-500 mb-1">Effort (hrs)</label>
+                            <input 
+                              type="number" min="0.1" max="24" step="0.1" required
+                              value={viewingItem.technicalEffort || 2} 
+                              onChange={e => setViewingItem({...viewingItem, technicalEffort: parseFloat(e.target.value)})}
+                              className="w-full px-3 py-2 bg-neutral-50 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-lg text-sm dark:text-white focus:ring-2 focus:ring-blue-500"
+                            />
+                          </div>
+                        </div>
+                      </>
+                    )}
+                    {historyType === 'reminders' && (
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-xs font-medium text-neutral-500 mb-1">Date</label>
+                          <input 
+                            type="date" required
+                            value={viewingItem.remindAt ? format(new Date(viewingItem.remindAt), 'yyyy-MM-dd') : ''}
+                            onChange={e => setViewingItem({
+                              ...viewingItem, 
+                              remindAt: new Date(e.target.value + 'T' + (viewingItem.remindAt ? format(new Date(viewingItem.remindAt), 'HH:mm') : '12:00')).toISOString()
+                            })}
+                            className="w-full px-3 py-2 bg-neutral-50 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-lg text-sm dark:text-white dark:[color-scheme:dark]"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium text-neutral-500 mb-1">Time</label>
+                          <input 
+                            type="time" required
+                            value={viewingItem.remindAt ? format(new Date(viewingItem.remindAt), 'HH:mm') : ''}
+                            onChange={e => setViewingItem({
+                              ...viewingItem, 
+                              remindAt: new Date((viewingItem.remindAt ? format(new Date(viewingItem.remindAt), 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd')) + 'T' + e.target.value).toISOString()
+                            })}
+                            className="w-full px-3 py-2 bg-neutral-50 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-lg text-sm dark:text-white dark:[color-scheme:dark]"
+                          />
+                        </div>
+                      </div>
+                    )}
+                    <div className="pt-2 flex gap-3">
+                      <button type="button" onClick={() => setIsEditingItem(false)} className="flex-1 py-2 bg-neutral-100 hover:bg-neutral-200 dark:bg-neutral-800 dark:hover:bg-neutral-700 text-neutral-700 dark:text-neutral-300 rounded-lg text-sm font-medium transition-colors">Cancel</button>
+                      <button type="submit" className="flex-1 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors shadow-sm">Save Changes</button>
+                    </div>
+                  </form>
+                ) : (
+                  <div className="space-y-4">
+                    {historyType === 'tasks' && viewingItem.description && (
+                      <div>
+                        <h4 className="text-xs font-medium text-neutral-500 uppercase tracking-wider mb-1">Description</h4>
+                        <p className="text-sm text-neutral-800 dark:text-neutral-200 whitespace-pre-wrap">{viewingItem.description}</p>
+                      </div>
+                    )}
+                    {historyType === 'tasks' && viewingItem.sourceUrl && (
+                      <div>
+                        <h4 className="text-xs font-medium text-neutral-500 uppercase tracking-wider mb-1">Source URL</h4>
+                        <a href={viewingItem.sourceUrl} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-600 hover:underline break-all">{viewingItem.sourceUrl}</a>
+                      </div>
+                    )}
+                    {historyType === 'tasks' && (
+                      <div className="flex items-center gap-8">
+                        <div>
+                          <h4 className="text-xs font-medium text-neutral-500 uppercase tracking-wider mb-1">Complexity</h4>
+                          <p className="text-sm text-neutral-800 dark:text-neutral-200 font-medium">{viewingItem.complexity || 3}/5</p>
+                        </div>
+                        <div>
+                          <h4 className="text-xs font-medium text-neutral-500 uppercase tracking-wider mb-1">Effort</h4>
+                          <p className="text-sm text-neutral-800 dark:text-neutral-200 font-medium">{viewingItem.technicalEffort || 2} hrs</p>
+                        </div>
+                      </div>
+                    )}
+                    <div className="flex items-center gap-8">
+                      <div>
+                        <h4 className="text-xs font-medium text-neutral-500 uppercase tracking-wider mb-1">Status</h4>
+                        <span className={`inline-flex px-2 py-1 rounded-md text-xs font-semibold capitalize ${
+                          (viewingItem.status === 'completed' || viewingItem.status === 'dismissed') ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' :
+                          (viewingItem.status === 'overdue' || (viewingItem.status === 'active' && new Date(viewingItem.remindAt) < new Date())) ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400' :
+                          'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'
+                        }`}>
+                          {viewingItem.status}
+                        </span>
+                      </div>
+                      <div>
+                        <h4 className="text-xs font-medium text-neutral-500 uppercase tracking-wider mb-1">Scheduled For</h4>
+                        <p className="text-sm text-neutral-800 dark:text-neutral-200 font-medium">
+                          {historyType === 'tasks' ? 
+                            (viewingItem.deadline ? format(new Date(viewingItem.deadline), 'MMM d, yyyy - h:mm a') : 'None') :
+                            (viewingItem.remindAt ? format(new Date(viewingItem.remindAt), 'MMM d, yyyy - h:mm a') : 'None')
+                          }
+                        </p>
+                      </div>
+                    </div>
+                    <div className="pt-4 mt-2 border-t border-neutral-100 dark:border-neutral-800">
+                      <button onClick={() => handleDeleteHistoryItem(viewingItem._id)} className="w-full flex items-center justify-center gap-2 py-2 bg-red-50 hover:bg-red-100 dark:bg-red-900/10 dark:hover:bg-red-900/20 text-red-600 rounded-lg text-sm font-medium transition-colors">
+                        <Trash2 className="w-4 h-4" />
+                        Delete {historyType === 'tasks' ? 'Task' : 'Reminder'}
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
