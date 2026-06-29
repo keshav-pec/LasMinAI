@@ -60,6 +60,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   });
 
   loginBtn.addEventListener('click', () => {
-    chrome.tabs.create({ url: 'http://localhost:5174' });
+    const ENV = 'prod'; // Change to 'dev' when developing locally
+    const targetUrl = ENV === 'dev' ? 'http://localhost:5174' : 'https://lasmin-ai-280275748399.asia-south1.run.app';
+    chrome.tabs.create({ url: targetUrl });
   });
 });

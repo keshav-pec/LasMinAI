@@ -1,6 +1,8 @@
-const API_URL = 'http://localhost:5050';
-const FRONTEND_URL = 'http://localhost:5174';
-const PROD_FRONTEND_URL = 'https://lasminai.vercel.app';
+const ENV = 'prod'; // Change to 'dev' when developing locally
+
+const API_URL = ENV === 'dev' ? 'http://localhost:5050' : 'https://lasminai-280275748399.asia-south1.run.app';
+const FRONTEND_URL = ENV === 'dev' ? 'http://localhost:5174' : 'https://lasmin-ai-280275748399.asia-south1.run.app';
+const PROD_FRONTEND_URL = 'https://lasmin-ai-280275748399.asia-south1.run.app';
 
 // 1. Setup Context Menus
 chrome.runtime.onInstalled.addListener(() => {

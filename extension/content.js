@@ -9,7 +9,7 @@ chrome.storage.sync.get('siteSettings', ({ siteSettings: storedSettings = {} }) 
     return; 
   }
 
-  const isLasMinWebApp = window.location.href.includes('localhost:5174') || window.location.href.includes('localhost:5050') || window.location.href.includes('lasminai.vercel.app');
+  const isLasMinWebApp = window.location.href.includes('localhost:5174') || window.location.href.includes('lasmin-ai-280275748399.asia-south1.run.app');
 
   const safeSendMessage = (msg, callback) => {
     if (!chrome.runtime?.id) return;
@@ -304,7 +304,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (!siteSettings.reminders) return; // Ignore blocker logic if reminders are disabled
 
   if (message.type === 'SHOW_BLOCKER' && message.reminders && message.reminders.length > 0) {
-    if (window.location.href.includes('localhost:5174') || window.location.href.includes('localhost:5050') || window.location.href.includes('lasminai.vercel.app')) {
+    if (window.location.href.includes('localhost:5174') || window.location.href.includes('lasmin-ai-280275748399.asia-south1.run.app')) {
       return; // Do not show the raw extension blocker over the beautiful native web app dialog
     }
     const r = message.reminders[0];
