@@ -616,11 +616,19 @@ async function handleExtractTasks() {
   toast.style.fontFamily = 'system-ui, sans-serif';
   document.body.appendChild(toast);
 
+  const localTime = new Date().toLocaleString('en-US');
+  const offsetMinutes = new Date().getTimezoneOffset();
+  const sign = offsetMinutes > 0 ? '-' : '+';
+  const absOffset = Math.abs(offsetMinutes);
+  const hrs = String(Math.floor(absOffset / 60)).padStart(2, '0');
+  const mins = String(absOffset % 60).padStart(2, '0');
+  const timezoneOffset = `${sign}${hrs}:${mins}`;
+
   safeSendMessage({
     type: 'PROXY_FETCH',
     url: '/api/extension/parse-dom',
     method: 'POST',
-    body: { text: text.substring(0, 60000), url: window.location.href } // limit chars
+    body: { text: text.substring(0, 60000), url: window.location.href, localTime, timezoneOffset } // limit chars
   }, (response) => {
     toast.remove();
     if (response && response.success && response.data && response.data.tasks) {

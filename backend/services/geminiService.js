@@ -571,19 +571,22 @@ const domTaskExtractionSchema = {
   }
 };
 
-const extractTasksFromDOM = async (textContext, urlContext) => {
+const extractTasksFromDOM = async (textContext, urlContext, localTime = '', timezoneOffset = '+00:00') => {
   try {
     const systemInstruction = `
       You are an intelligent task parser for LasMinAI.
       The user has right-clicked on a webpage and triggered the DOM reader.
       I will provide you with the raw text extracted from the webpage.
       URL context: ${urlContext}
+      Current Local Date/Time: ${localTime || new Date().toLocaleString()}
+      User Timezone Offset: ${timezoneOffset}
       
       Your job is to read this unstructured text and find ALL implied action items, homework, tickets, or tasks.
       CRITICAL: Do not stop at just 3 tasks! Extract EVERY SINGLE valid task you can find on the page (up to 15 tasks).
       CRITICAL: If the text includes meeting links, documentation URLs, or any (https://...) references relevant to the task, YOU MUST include them in the description field.
       Estimate their complexity (1-5) and technical effort in minutes (5-1440m).
       Deduce the deadline if mentioned.
+      CRITICAL TIMESTAMPS: You MUST deduce the deadline relative to the 'Current Local Date/Time' provided above. For example, if today is June 2026, '31st of the month' means June 31, 2026 (or next valid 31st). DO NOT hallucinate past years. The deadline field MUST be formatted as an ISO 8601 UTC string (convert the local time you deduced using the 'User Timezone Offset').
       Return an array of JSON objects representing the tasks.
     `;
 

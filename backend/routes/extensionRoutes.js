@@ -5,12 +5,12 @@ const { extractTasksFromDOM } = require('../services/geminiService');
 
 router.post('/parse-dom', requireAuth, async (req, res) => {
   try {
-    const { text, url } = req.body;
+    const { text, url, localTime, timezoneOffset } = req.body;
     if (!text) {
       return res.status(400).json({ success: false, message: 'Text context is required' });
     }
 
-    const tasks = await extractTasksFromDOM(text, url);
+    const tasks = await extractTasksFromDOM(text, url, localTime, timezoneOffset);
     res.status(200).json({ success: true, tasks });
   } catch (error) {
     console.error('Error parsing DOM:', error);
