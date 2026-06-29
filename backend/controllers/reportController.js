@@ -77,7 +77,23 @@ const generateGoogleDocReport = async (req, res) => {
       const isCompleted = t.status === 'completed';
       
       const titleEscaped = escapeHtml(t.title);
-      const descEscaped = escapeHtml(t.description);
+      let descEscaped = escapeHtml(t.description);
+      
+      // Convert Markdown links [text](url) to beautiful HTML anchors for the Google Doc
+      const linkReplacer = (match, text, url) => {
+        const cleanUrl = url.replace(/&amp;/g, '&');
+        return `<a href="${cleanUrl}" style="color: #3b82f6; text-decoration: underline;">${text}</a>`;
+      };
+      
+      // Also catch raw URLs that the AI didn't format as Markdown and wrap them in a short "Link" anchor
+      const rawUrlReplacer = (match, url) => {
+        const cleanUrl = url.replace(/&amp;/g, '&');
+        return `<a href="${cleanUrl}" style="color: #3b82f6; text-decoration: underline;">[Link]</a>`;
+      };
+      
+      descEscaped = descEscaped.replace(/\[([^\]]+)\]\(([^)]+)\)/g, linkReplacer);
+      // Regex for raw URLs (http or https) not preceded by href="
+      descEscaped = descEscaped.replace(/(?<!href=")(https?:\/\/[^\s]+)/g, rawUrlReplacer);
       
       // Only send pending tasks to the AI so it doesn't give advice on finished work!
       if (!isCompleted) {
@@ -90,8 +106,11 @@ const generateGoogleDocReport = async (req, res) => {
       const titleDecor = isCompleted ? 'text-decoration: line-through; color: #94a3b8;' : 'color: #1e293b;';
       const icon = isCompleted ? '✅' : '📌';
       
+      const sourceBtn = t.sourceUrl ? `<a href="${escapeHtml(t.sourceUrl)}" style="background-color: #3b82f6; color: white; padding: 2px 6px; border-radius: 4px; text-decoration: none; font-size: 10pt; font-weight: bold; margin-right: 8px;">🔗</a>` : '';
+      
       htmlTasksList += `
         <p style="margin: 0; padding: 0; margin-bottom: 12px; font-family: 'Arial', sans-serif; line-height: 1.2;">
+          ${sourceBtn}
           <span style="font-size: 14pt; font-weight: bold; ${titleDecor}">
             ${icon} ${titleEscaped}
           </span>

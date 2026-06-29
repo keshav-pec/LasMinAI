@@ -562,7 +562,7 @@ const domTaskExtractionSchema = {
     type: Type.OBJECT,
     properties: {
       title: { type: Type.STRING, description: "A concise title for the task." },
-      description: { type: Type.STRING, description: "Detailed helpful context or instructions found." },
+      description: { type: Type.STRING, description: "Detailed helpful context. YOU MUST wrap any URLs in markdown like [Link](https://...)." },
       deadline: { type: Type.STRING, description: "ISO 8601 date string if a deadline is implied. Omit if none." },
       complexity: { type: Type.NUMBER, description: "Scale 1-5 (1=easy, 5=hard). Default 3." },
       technicalEffort: { type: Type.NUMBER, description: "Estimated minutes. Default 120." }
@@ -583,7 +583,7 @@ const extractTasksFromDOM = async (textContext, urlContext, localTime = '', time
       
       Your job is to read this unstructured text and find ALL implied action items, homework, tickets, or tasks.
       CRITICAL: Do not stop at just 3 tasks! Extract EVERY SINGLE valid task you can find on the page (up to 15 tasks).
-      CRITICAL: If the text includes meeting links, documentation URLs, or any (https://...) references relevant to the task, YOU MUST include them in the description field.
+      CRITICAL: If the text includes meeting links, documentation URLs, or any (https://...) references relevant to the task, YOU MUST include them in the description field. BUT you MUST wrap ALL URLs in a Markdown anchor like [Source](https://...) or [Doc](https://...) so they do not look bulky to the user.
       Estimate their complexity (1-5) and technical effort in minutes (5-1440m).
       Deduce the deadline if mentioned.
       CRITICAL TIMESTAMPS: You MUST deduce the deadline relative to the 'Current Local Date/Time' provided above. For example, if today is June 2026, '31st of the month' means June 31, 2026 (or next valid 31st). DO NOT hallucinate past years. The deadline field MUST be formatted as an ISO 8601 UTC string (convert the local time you deduced using the 'User Timezone Offset').

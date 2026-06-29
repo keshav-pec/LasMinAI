@@ -697,10 +697,28 @@ function showExtractedTasksModal(tasks) {
     titleInput.className = 'lasminai-task-input title-input';
     titleInput.value = task.title;
 
-    const descInput = document.createElement('textarea');
+    const descInput = document.createElement('div');
+    descInput.contentEditable = "true";
     descInput.className = 'lasminai-task-textarea';
-    descInput.value = task.description || '';
-    descInput.placeholder = 'Add details or context...';
+    
+    let descText = (task.description || '').replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    // Convert Markdown
+    descText = descText.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" style="color:#3b82f6;text-decoration:underline;" target="_blank">$1</a>');
+    // Convert raw URLs
+    descText = descText.replace(/(?<!href=")(https?:\/\/[^\s]+)/g, '<a href="$1" style="color:#3b82f6;text-decoration:underline;" target="_blank">[Link]</a>');
+    
+    descInput.innerHTML = descText;
+    descInput.style.minHeight = '80px';
+    descInput.style.overflowY = 'auto';
+    descInput.style.border = '1px solid #d1d5db';
+    descInput.style.padding = '8px';
+    descInput.style.borderRadius = '6px';
+    descInput.style.backgroundColor = 'white';
+    descInput.style.fontSize = '13px';
+    descInput.style.color = '#374151';
+    if (!descText) {
+      descInput.setAttribute('data-placeholder', 'Add details or context...');
+    }
 
     const deadlineInput = document.createElement('input');
     deadlineInput.className = 'lasminai-task-input';
@@ -736,15 +754,26 @@ function showExtractedTasksModal(tasks) {
         defaultDl.setDate(defaultDl.getDate() + 1); // Push to tomorrow if it's late
       }
       defaultDl.setHours(23, 59, 59, 999);
-      
       const dl = deadlineInput.value ? new Date(deadlineInput.value).toISOString() : defaultDl.toISOString();
+      
+      const getMarkdownFromDiv = (div) => {
+        let clone = div.cloneNode(true);
+        const links = clone.querySelectorAll('a');
+        links.forEach(a => {
+          let inner = a.innerText || a.textContent;
+          if (inner === '[Link]') inner = 'Link';
+          a.outerHTML = `[${inner}](${a.href})`;
+        });
+        return clone.innerText || clone.textContent;
+      };
+
       queueMessage({
         type: 'PROXY_FETCH',
         url: '/api/tasks',
         method: 'POST',
         body: {
           title: titleInput.value,
-          description: descInput.value,
+          description: getMarkdownFromDiv(descInput),
           deadline: dl,
           complexity: task.complexity || 3,
           technicalEffort: task.technicalEffort || 120,
