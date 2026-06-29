@@ -46,7 +46,7 @@ export default function App() {
     fetchSession();
   }, []);
 
-  if (isLoading) return <div className="min-h-screen bg-neutral-950 flex items-center justify-center text-white">Initializing System...</div>;
+  if (isLoading) return <div className="min-h-screen bg-neutral-950 flex items-center justify-center text-white">Loading...</div>;
 
   const isAuthenticated = !!userData;
 

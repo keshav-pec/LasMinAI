@@ -50,7 +50,7 @@ export default function Home({ isAuthenticated }) {
             </>
           ) : (
             <Link to="/auth" className="flex items-center gap-2 bg-neutral-900 dark:bg-neutral-100 hover:bg-neutral-800 dark:hover:bg-white text-white dark:text-neutral-900 px-8 py-4 rounded-full font-medium transition-all cursor-pointer">
-              Initialize Connection
+              Register or Login
             </Link>
           )}
         </motion.div>

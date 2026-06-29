@@ -63,7 +63,7 @@ const CalendarWidget = memo(function CalendarWidget({ tasks = [], handleToggleCo
 
   const getPriorityColor = (score) => {
     if (score > 75) return { bg: 'bg-amber-500/10 dark:bg-amber-900/20', text: 'text-amber-700 dark:text-amber-400', dot: 'bg-amber-500', border: 'border-amber-500/20' };
-    if (score > 25) return { bg: 'bg-blue-500/10 dark:bg-blue-900/20', text: 'text-blue-700 dark:text-blue-400', dot: 'bg-blue-500', border: 'border-blue-500/20' };
+    if (score > 20) return { bg: 'bg-blue-500/10 dark:bg-blue-900/20', text: 'text-blue-700 dark:text-blue-400', dot: 'bg-blue-500', border: 'border-blue-500/20' };
     return { bg: 'bg-neutral-200/50 dark:bg-neutral-800/50', text: 'text-neutral-800 dark:text-white', dot: 'bg-neutral-800 dark:bg-white', border: 'border-neutral-300/50 dark:border-neutral-700/50' };
   };
 

@@ -20,7 +20,7 @@ exports.handleChatMessage = async (req, res) => {
                                 .select('-__v -createdAt -updatedAt');
 
     // 2. Pass everything to the AI Brain
-    const aiAnalysis = await parseUserMessage(message, history || [], liveTasks, localTime);
+    const aiAnalysis = await parseUserMessage(message, history || [], liveTasks, localTime, timezoneOffset);
 
     // ==========================================
     // ACTION ROUTING

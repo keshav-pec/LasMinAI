@@ -28,7 +28,8 @@ exports.handleReminderChat = async (req, res) => {
       safeHistory, 
       activeTasks, 
       activeReminders, 
-      localTime
+      localTime,
+      timezoneOffset
     );
 
     const { action, conversationalReply, voiceReply, extractedReminderCreate, extractedReminderUpdate, extractedReminderDismiss } = aiResponse;

@@ -39,10 +39,10 @@ export default function Auth() {
             <Zap className="w-8 h-8 text-white fill-white/20" />
           </motion.div>
           <h2 className="text-3xl font-bold tracking-tight text-neutral-900 dark:text-white mb-3">
-            Initialize Core
+            Register or Login
           </h2>
           <p className="text-neutral-600 dark:text-neutral-400 text-sm leading-relaxed px-4">
-            Authorize calendar access to enable autonomous scheduling, conflict resolution, and dynamic task routing.
+            Authorize calendar, gmail and google drive access to enable autonomous scheduling, intelligent follow-ups and smart email triage.
           </p>
         </div>
 

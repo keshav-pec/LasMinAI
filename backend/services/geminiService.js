@@ -15,6 +15,7 @@ const COMMON_FORMATTING_RULES = `
          - Use inline code blocks (\`like this\`) to highlight specific task names or times. Make it look beautiful and easy to skim.
          - NATURAL DATES: When displaying dates or times in your conversational reply, you MUST use natural language. If a date is today, say "Today". If it is tomorrow, say "Tomorrow". Only use exact dates (e.g., "July 28th") for dates further in the future. 
          - NEVER mention the year (e.g., "2026") or the time zone (e.g., UTC or IST) in your responses.
+         - CRITICAL TIMEZONE: ALL dates/times in the LIVE DATABASE CONTEXT are stored in UTC. You MUST mentally convert them to the user's local timezone (provided as 'User Timezone Offset') before displaying. For example, if the offset is +05:30 and a deadline is 2026-06-30T18:29:00Z (UTC), the local time is 11:59 PM. ALWAYS show the converted local time, NEVER show UTC times.
 `;
 
 // ==========================================
@@ -63,13 +64,14 @@ const workstationSchema = {
 /**
  * Parses the Work Station chat, injects live pending tasks, and generates schedules.
  */
-const parseWorkstationMessage = async (userMessage, history = [], currentTasks = [], localTime = '') => {
+const parseWorkstationMessage = async (userMessage, history = [], currentTasks = [], localTime = '', timezoneOffset = '+00:00') => {
   try {
     const now = new Date();
     
     const systemPrompt = `
       You are LasMinAI's Execution Manager.
       Current Local Date/Time: ${localTime || now.toLocaleString()}
+      User Timezone Offset: ${timezoneOffset}
 
       LIVE PENDING TASKS:
       ${JSON.stringify(currentTasks, null, 2)}
@@ -164,13 +166,14 @@ const intentSchema = {
 /**
  * Parses the message, injects live DB context, and determines the action.
  */
-const parseUserMessage = async (userMessage, history = [], currentTasks = [], localTime = '') => {
+const parseUserMessage = async (userMessage, history = [], currentTasks = [], localTime = '', timezoneOffset = '+00:00') => {
   try {
     const now = new Date();
     
     const systemPrompt = `
       You are LasMinAI (powered by gemini and developed by Keshav Goyal), an advanced productivity agent.
       Current Local Date/Time: ${localTime || now.toLocaleString()}
+      User Timezone Offset: ${timezoneOffset}
 
       LIVE DATABASE CONTEXT (Current User Tasks):
       ${JSON.stringify(currentTasks, null, 2)}
@@ -264,13 +267,14 @@ const reminderIntentSchema = {
 /**
  * Parses the reminder message, injects live tasks and active reminders context.
  */
-const parseReminderMessage = async (userMessage, history = [], activeTasks = [], activeReminders = [], localTime = '') => {
+const parseReminderMessage = async (userMessage, history = [], activeTasks = [], activeReminders = [], localTime = '', timezoneOffset = '+00:00') => {
   try {
     const now = new Date();
     
     const systemPrompt = `
       You are LasMinAI's Reminders Bot.
       Current Local Date/Time: ${localTime || now.toLocaleString()}
+      User Timezone Offset: ${timezoneOffset}
 
       LIVE DATABASE CONTEXT:
       Active Reminders: ${JSON.stringify(activeReminders, null, 2)}

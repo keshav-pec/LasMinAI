@@ -17,7 +17,7 @@ exports.handleWorkstationChat = async (req, res) => {
     dynamicallySortedTasks = dynamicallySortedTasks.slice(0, 10);
 
     // Pass everything to the AI Brain (Workstation Persona)
-    const aiAnalysis = await parseWorkstationMessage(message, history || [], dynamicallySortedTasks, localTime);
+    const aiAnalysis = await parseWorkstationMessage(message, history || [], dynamicallySortedTasks, localTime, timezoneOffset);
 
     let calendarLinks = [];
     let calendarStatus = "Awaiting user preference before scheduling.";
