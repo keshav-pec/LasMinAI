@@ -739,7 +739,7 @@ function showExtractedTasksModal(tasks) {
           description: descInput.value,
           deadline: dl,
           complexity: task.complexity || 3,
-          technicalEffort: task.technicalEffort || 2,
+          technicalEffort: task.technicalEffort || 120,
           sourceUrl: window.location.href
         }
       }, (resp) => {

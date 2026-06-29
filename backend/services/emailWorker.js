@@ -34,7 +34,7 @@ const sweepEmails = async () => {
       
       // Check if any single task crosses the "30 minutes prior to Start Time" threshold
       for (const task of userTasks) {
-        const effortMs = (task.technicalEffort || 2) * 60 * 60 * 1000;
+        const effortMs = (task.technicalEffort || 120) * 60 * 1000;
         const startTimeMs = new Date(task.deadline).getTime() - effortMs;
         
         const timeUntilStartMs = startTimeMs - now;
@@ -54,7 +54,7 @@ const sweepEmails = async () => {
         
         // Gather ALL tasks for this user that start within the next 2 hours
         for (const task of userTasks) {
-          const effortMs = (task.technicalEffort || 2) * 60 * 60 * 1000;
+          const effortMs = (task.technicalEffort || 120) * 60 * 1000;
           const startTimeMs = new Date(task.deadline).getTime() - effortMs;
           
           const timeUntilStartMs = startTimeMs - now;

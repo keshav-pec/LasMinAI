@@ -17,8 +17,8 @@ exports.createTask = async (req, res) => {
     if (complexity && (typeof complexity !== 'number' || complexity < 1 || complexity > 5)) {
       return res.status(400).json({ success: false, message: 'Complexity must be a number between 1 and 5.' });
     }
-    if (technicalEffort && (typeof technicalEffort !== 'number' || technicalEffort <= 0 || technicalEffort > 24)) {
-      return res.status(400).json({ success: false, message: 'Technical Effort must be a positive number up to 24.' });
+    if (technicalEffort && (typeof technicalEffort !== 'number' || technicalEffort < 5 || technicalEffort > 1440)) {
+      return res.status(400).json({ success: false, message: 'Technical Effort must be between 5 and 1440 minutes.' });
     }
 
     const newTask = new Task({

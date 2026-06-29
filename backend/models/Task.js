@@ -32,9 +32,9 @@ const TaskSchema = new mongoose.Schema({
   technicalEffort: {
     type: Number,
     required: true,
-    min: 0.1,
-    max: 24,
-    default: 2, // E: Estimated hours to complete
+    min: 5,
+    max: 1440, // 24 hours
+    default: 120, // E: Estimated minutes to complete
   },
   status: {
     type: String,

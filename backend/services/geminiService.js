@@ -139,7 +139,7 @@ const intentSchema = {
         description: { type: Type.STRING, description: "Detailed helpful context, instructions, or elaboration provided by the user. If they provide none, leave this empty." },
         deadline: { type: Type.STRING, description: "ISO 8601 exact date string. NEVER OMIT THIS FIELD. Calculate relative times (e.g. 'today' -> 11:59 PM today)." },
         complexity: { type: Type.NUMBER, description: "Scale of 1-5 based on user's feeling (1=very easy, 2=easy, 3=normal, 4=hard, 5=very hard). You MUST intelligently extract this." },
-        technicalEffort: { type: Type.NUMBER, description: "Estimated time in hours required. Supports floats (e.g., 40 mins = 0.67). Default 2." }
+        technicalEffort: { type: Type.NUMBER, description: "Estimated time in minutes required. Default 120." }
       },
       required: ["title", "deadline"]
     },
@@ -152,7 +152,7 @@ const intentSchema = {
         description: { type: Type.STRING },
         deadline: { type: Type.STRING },
         complexity: { type: Type.NUMBER, description: "Scale of 1-5 based on user's feeling (1=very easy, 2=easy, 3=normal, 4=hard, 5=very hard)." },
-        technicalEffort: { type: Type.NUMBER, description: "Estimated time in hours required. Supports floats (e.g., 40 mins = 0.67)." },
+        technicalEffort: { type: Type.NUMBER, description: "Estimated time in minutes required." },
         status: { type: Type.STRING, enum: ["pending", "completed", "overdue"] }
       },
       required: ["taskIdToUpdate"]
@@ -561,7 +561,7 @@ const domTaskExtractionSchema = {
       description: { type: Type.STRING, description: "Detailed helpful context or instructions found." },
       deadline: { type: Type.STRING, description: "ISO 8601 date string if a deadline is implied. Omit if none." },
       complexity: { type: Type.NUMBER, description: "Scale 1-5 (1=easy, 5=hard). Default 3." },
-      technicalEffort: { type: Type.NUMBER, description: "Estimated hours. Default 2." }
+      technicalEffort: { type: Type.NUMBER, description: "Estimated minutes. Default 120." }
     },
     required: ["title"]
   }
@@ -578,7 +578,7 @@ const extractTasksFromDOM = async (textContext, urlContext) => {
       Your job is to read this unstructured text and find ALL implied action items, homework, tickets, or tasks.
       CRITICAL: Do not stop at just 3 tasks! Extract EVERY SINGLE valid task you can find on the page (up to 15 tasks).
       CRITICAL: If the text includes meeting links, documentation URLs, or any (https://...) references relevant to the task, YOU MUST include them in the description field.
-      Estimate their complexity (1-5) and technical effort (1-24h).
+      Estimate their complexity (1-5) and technical effort in minutes (5-1440m).
       Deduce the deadline if mentioned.
       Return an array of JSON objects representing the tasks.
     `;

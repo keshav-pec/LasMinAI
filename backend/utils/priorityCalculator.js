@@ -12,17 +12,17 @@ const calculatePriorityScore = (deadline, complexity, technicalEffort) => {
   const timeDiffMs = deadlineDate - now;
   const hoursRemaining = timeDiffMs / (1000 * 60 * 60);
 
-  const buffer = hoursRemaining - technicalEffort;
+  const buffer = hoursRemaining - (technicalEffort / 60);
   
   const W_c = 5; // Complexity weight (Max 5 * 5 = 25)
   
   let urgencyFactor = 0;
   
-  if (buffer <= 0 && buffer > (-1)*technicalEffort) {
+  if (buffer <= 0 && buffer > (-1)*(technicalEffort/60)) {
     // Urgency Mode: Task is overdue or there is no buffer left
     urgencyFactor = 75; 
   }
-  else if (buffer<=-technicalEffort) {
+  else if (buffer<=-(technicalEffort/60)) {
     urgencyFactor = 100-W_c*complexity;
   } 
   else {

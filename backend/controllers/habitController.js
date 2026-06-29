@@ -24,8 +24,8 @@ const createHabit = async (req, res) => {
     if (complexity !== undefined && (typeof complexity !== 'number' || complexity < 1 || complexity > 5)) {
       return res.status(400).json({ success: false, message: 'Complexity must be a number between 1 and 5.' });
     }
-    if (technicalEffort !== undefined && (typeof technicalEffort !== 'number' || technicalEffort < 1 || technicalEffort > 24)) {
-      return res.status(400).json({ success: false, message: 'Technical Effort must be a number between 1 and 24.' });
+    if (technicalEffort !== undefined && (typeof technicalEffort !== 'number' || technicalEffort < 5 || technicalEffort > 1440)) {
+      return res.status(400).json({ success: false, message: 'Technical Effort must be between 5 and 1440 minutes.' });
     }
 
     const newHabit = new Habit({

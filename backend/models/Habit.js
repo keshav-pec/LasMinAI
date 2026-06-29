@@ -32,7 +32,7 @@ const HabitSchema = new mongoose.Schema({
   },
   technicalEffort: {
     type: Number,
-    default: 1, // hours
+    default: 60, // minutes
   },
   streak: {
     type: Number,

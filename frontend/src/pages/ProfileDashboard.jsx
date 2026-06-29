@@ -45,7 +45,7 @@ export default function ProfileDashboard({ userData }) {
     frequency: 'daily',
     deadlineTime: '18:00',
     complexity: 5,
-    technicalEffort: 1
+    technicalEffort: 60
   });
 
   const fetchData = async () => {
@@ -93,7 +93,7 @@ export default function ProfileDashboard({ userData }) {
       if (res.data.success) {
         toast.success("Habit created!");
         setHabits([res.data.habit, ...habits]);
-        setNewHabit({ title: '', description: '', frequency: 'daily', deadlineTime: '18:00', complexity: 5, technicalEffort: 1 });
+        setNewHabit({ title: '', description: '', frequency: 'daily', deadlineTime: '18:00', complexity: 5, technicalEffort: 60 });
       }
     } catch (error) {
       toast.error(error.response?.data?.message || "Failed to create habit");
@@ -188,8 +188,8 @@ export default function ProfileDashboard({ userData }) {
   ];
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
-      <div className="flex flex-col md:flex-row gap-8">
+    <div className="w-full max-w-7xl mx-auto px-4 py-8 sm:px-6 lg:px-8 min-h-[calc(100vh-8rem)]">
+      <div className="w-full flex flex-col md:flex-row gap-8">
         {/* Left Sidebar Tabs */}
         <div className="w-full md:w-56 flex-shrink-0">
           <nav className="flex md:flex-col gap-2 overflow-x-auto pb-4 md:pb-0 hide-scrollbar">
@@ -215,7 +215,7 @@ export default function ProfileDashboard({ userData }) {
         </div>
 
         {/* Right Content Area */}
-        <div className="flex-1 min-w-0">
+        <div className="flex-1 min-w-0 w-full">
           <AnimatePresence mode="wait">
             <motion.div
               key={activeTab}
@@ -223,12 +223,12 @@ export default function ProfileDashboard({ userData }) {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
               transition={{ duration: 0.2 }}
-              className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl p-6 sm:p-8 shadow-sm"
+              className="w-full bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl p-6 sm:p-8 shadow-sm"
             >
               
               {/* HABITS TAB */}
               {activeTab === 'habits' && (
-                <div className="space-y-8">
+                <div className="space-y-8 w-full">
                   
                   {/* Heatmap Section */}
                   <div className="bg-neutral-50 dark:bg-neutral-800/20 p-4 sm:p-5 rounded-xl border border-neutral-100 dark:border-neutral-800/60 transition-colors hover:border-neutral-200 dark:hover:border-neutral-700">
@@ -445,7 +445,7 @@ export default function ProfileDashboard({ userData }) {
 
               {/* HISTORY TAB */}
               {activeTab === 'history' && (
-                <div className="space-y-6">
+                <div className="space-y-6 w-full">
                   {/* Date Navigation & Type Selector */}
                   <div className="flex flex-col sm:flex-row items-center justify-between gap-4 bg-neutral-50 dark:bg-neutral-800/30 p-4 rounded-xl border border-neutral-100 dark:border-neutral-700/50">
                     <div className="flex items-center gap-4">
@@ -628,11 +628,11 @@ export default function ProfileDashboard({ userData }) {
                             />
                           </div>
                           <div>
-                            <label className="block text-xs font-medium text-neutral-500 mb-1">Effort (hrs)</label>
+                            <label className="block text-xs font-medium text-neutral-500 mb-1">Effort (mins)</label>
                             <input 
-                              type="number" min="0.1" max="24" step="0.1" required
-                              value={viewingItem.technicalEffort || 2} 
-                              onChange={e => setViewingItem({...viewingItem, technicalEffort: parseFloat(e.target.value)})}
+                              type="number" min="5" max="1440" step="1" required
+                              value={viewingItem.technicalEffort || 120} 
+                              onChange={e => setViewingItem({...viewingItem, technicalEffort: parseInt(e.target.value)})}
                               className="w-full px-3 py-2 bg-neutral-50 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-lg text-sm dark:text-white focus:ring-2 focus:ring-blue-500"
                             />
                           </div>
@@ -686,19 +686,35 @@ export default function ProfileDashboard({ userData }) {
                         <a href={viewingItem.sourceUrl} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-600 hover:underline break-all">{viewingItem.sourceUrl}</a>
                       </div>
                     )}
-                    {historyType === 'tasks' && (
-                      <div className="flex items-center gap-8">
-                        <div>
-                          <h4 className="text-xs font-medium text-neutral-500 uppercase tracking-wider mb-1">Complexity</h4>
-                          <p className="text-sm text-neutral-800 dark:text-neutral-200 font-medium">{viewingItem.complexity || 3}/5</p>
-                        </div>
-                        <div>
-                          <h4 className="text-xs font-medium text-neutral-500 uppercase tracking-wider mb-1">Effort</h4>
-                          <p className="text-sm text-neutral-800 dark:text-neutral-200 font-medium">{viewingItem.technicalEffort || 2} hrs</p>
-                        </div>
+                    <div className="grid grid-cols-2 gap-y-6 gap-x-4">
+                      {historyType === 'tasks' && (
+                        <>
+                          <div>
+                            <h4 className="text-xs font-medium text-neutral-500 uppercase tracking-wider mb-1">Effort</h4>
+                            <p className="text-sm text-neutral-800 dark:text-neutral-200 font-medium">
+                              {(() => {
+                                const effort = viewingItem.technicalEffort || 120;
+                                const h = Math.floor(effort / 60);
+                                const m = effort % 60;
+                                return h > 0 ? `${h} hrs${m > 0 ? ` ${m} mins` : ''}` : `${m} mins`;
+                              })()}
+                            </p>
+                          </div>
+                          <div>
+                            <h4 className="text-xs font-medium text-neutral-500 uppercase tracking-wider mb-1">Complexity</h4>
+                            <p className="text-sm text-neutral-800 dark:text-neutral-200 font-medium">{viewingItem.complexity || 3}/5</p>
+                          </div>
+                        </>
+                      )}
+                      <div>
+                        <h4 className="text-xs font-medium text-neutral-500 uppercase tracking-wider mb-1">Scheduled For</h4>
+                        <p className="text-sm text-neutral-800 dark:text-neutral-200 font-medium">
+                          {historyType === 'tasks' ? 
+                            (viewingItem.deadline ? format(new Date(viewingItem.deadline), 'MMM d, yyyy - h:mm a') : 'None') :
+                            (viewingItem.remindAt ? format(new Date(viewingItem.remindAt), 'MMM d, yyyy - h:mm a') : 'None')
+                          }
+                        </p>
                       </div>
-                    )}
-                    <div className="flex items-center gap-8">
                       <div>
                         <h4 className="text-xs font-medium text-neutral-500 uppercase tracking-wider mb-1">Status</h4>
                         <span className={`inline-flex px-2 py-1 rounded-md text-xs font-semibold capitalize ${
@@ -708,15 +724,6 @@ export default function ProfileDashboard({ userData }) {
                         }`}>
                           {viewingItem.status}
                         </span>
-                      </div>
-                      <div>
-                        <h4 className="text-xs font-medium text-neutral-500 uppercase tracking-wider mb-1">Scheduled For</h4>
-                        <p className="text-sm text-neutral-800 dark:text-neutral-200 font-medium">
-                          {historyType === 'tasks' ? 
-                            (viewingItem.deadline ? format(new Date(viewingItem.deadline), 'MMM d, yyyy - h:mm a') : 'None') :
-                            (viewingItem.remindAt ? format(new Date(viewingItem.remindAt), 'MMM d, yyyy - h:mm a') : 'None')
-                          }
-                        </p>
                       </div>
                     </div>
                     <div className="pt-4 mt-2 border-t border-neutral-100 dark:border-neutral-800">

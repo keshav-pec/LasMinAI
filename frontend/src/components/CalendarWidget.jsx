@@ -185,7 +185,12 @@ const CalendarWidget = memo(function CalendarWidget({ tasks = [], handleToggleCo
                           <div className="flex items-center gap-4 mt-2 text-xs opacity-80">
                             <span className="flex items-center gap-1 font-medium text-neutral-600 dark:text-neutral-400">
                               <Clock className="w-3.5 h-3.5" />
-                              {task.technicalEffort}h block
+                              {(() => {
+                                const effort = task.technicalEffort || 0;
+                                const h = Math.floor(effort / 60);
+                                const m = effort % 60;
+                                return h > 0 ? `${h}h${m > 0 ? ` ${m}m` : ''} block` : `${m}m block`;
+                              })()}
                             </span>
                             <span className="flex items-center gap-1 font-medium opacity-60 text-neutral-600 dark:text-neutral-400">
                               P-Score: {task.priorityScore}
