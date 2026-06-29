@@ -24,7 +24,7 @@ const FRONTEND_URL = isProduction ? process.env.FRONTEND_URL : 'http://localhost
 // Middleware
 app.use(cors({
   origin: function(origin, callback) {
-    if (!origin || origin === FRONTEND_URL || origin.startsWith('chrome-extension://')) {
+    if (!origin || origin === FRONTEND_URL || origin.startsWith('chrome-extension://') || origin.endsWith('.run.app')) {
       callback(null, true);
     } else {
       callback(new Error('Not allowed by CORS'));
