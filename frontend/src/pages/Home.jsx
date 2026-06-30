@@ -1,6 +1,6 @@
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
-import { Mic, ShieldAlert, BrainCircuit } from 'lucide-react';
+import { ShieldAlert, BrainCircuit, FileText } from 'lucide-react';
 import { useTasks } from '../hooks/useTasks';
 import CalendarWidget from '../components/CalendarWidget';
 import RemindersDashboard from '../components/RemindersDashboard';
@@ -35,7 +35,7 @@ export default function Home({ isAuthenticated }) {
         </motion.h1>
 
         <motion.p variants={itemVariants} className="text-lg text-neutral-600 dark:text-neutral-400 mb-10 max-w-2xl mx-auto leading-relaxed">
-          Stop missing deadlines. LasMinAI autonomously restructures your Google Calendar to ensure execution.
+          Stop missing deadlines. LasMinAI autonomously manages your tasks & schedule, enforces your focus, and seamlessly synchronizes your digital life using Agentic AI.
         </motion.p>
 
         <motion.div variants={itemVariants} className="flex flex-col sm:flex-row items-center justify-center gap-4">
@@ -76,9 +76,9 @@ export default function Home({ isAuthenticated }) {
         {/* Feature Grid */}
         <motion.div variants={itemVariants} className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-20 text-left pb-10">
           {[
-             { icon: Mic, title: "Global Voice Assistant", desc: "Control the app with voice commands from anywhere and magically autofill forms on any website using our Chrome Extension.", delay: 0 },
-             { icon: ShieldAlert, title: "Focus Mode & Reminders", desc: "Enforce productivity with full-screen blocking overlays, alert sounds, and math-puzzle dismissals.", delay: 0.2 },
-             { icon: BrainCircuit, title: "AI Task Prompter", desc: "Interact with AI to break down complex goals into actionable step-by-step blueprints via our Generative UI.", delay: 0.4 }
+             { icon: BrainCircuit, title: "Conversational Agent", desc: "Chat naturally or use LasMinAI Global Voice Assistant to extract tasks, set priorities, and autonomously schedule blocks directly into your calendar.", delay: 0 },
+             { icon: ShieldAlert, title: "Focus Enforcer Extension", desc: "A powerful cross-platform Chrome Extension that enforces productivity with math-puzzle blockers, instant multi-tab sync, and AI form autofill.", delay: 0.2 },
+             { icon: FileText, title: "Automated Digital Tracking", desc: "Track daily habits via automated triggers and instantly generate comprehensive, beautifully formatted execution reports in Google Docs.", delay: 0.4 }
           ].map((feature, i) => (
             <motion.div 
               key={i} 
