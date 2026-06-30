@@ -140,15 +140,25 @@ exports.snoozeReminder = async (req, res) => {
 // Fetch all reminders for a specific date range based on remindAt
 exports.getRemindersByDate = async (req, res) => {
   try {
-    const { date } = req.query;
+    const { date, timezoneOffset } = req.query;
     if (!date) {
       return res.status(400).json({ success: false, message: 'Date parameter (YYYY-MM-DD) is required.' });
     }
 
-    const startOfDay = new Date(date);
-    startOfDay.setUTCHours(0, 0, 0, 0);
-    const endOfDay = new Date(date);
-    endOfDay.setUTCHours(23, 59, 59, 999);
+    const [year, month, day] = date.split('-');
+    
+    // Parse the timezoneOffset (e.g., '+05:30' or '-04:00') into minutes
+    const offsetMatch = (timezoneOffset || '+00:00').match(/^([+-])(\d{2}):(\d{2})$/);
+    const offsetMinutes = offsetMatch 
+      ? (offsetMatch[1] === '+' ? 1 : -1) * (parseInt(offsetMatch[2]) * 60 + parseInt(offsetMatch[3]))
+      : 0;
+
+    // Construct the bounds strictly in UTC based on the user's offset
+    const localStartMs = new Date(`${year}-${month}-${day}T00:00:00.000Z`).getTime();
+    const startOfDay = new Date(localStartMs - offsetMinutes * 60000);
+    
+    const localEndMs = new Date(`${year}-${month}-${day}T23:59:59.999Z`).getTime();
+    const endOfDay = new Date(localEndMs - offsetMinutes * 60000);
 
     const reminders = await Reminder.find({
       userId: req.user.id,

@@ -123,7 +123,15 @@ export default function ProfileDashboard({ userData }) {
     setIsHistoryLoading(true);
     try {
       const dateStr = format(historyDate, 'yyyy-MM-dd');
-      const endpoint = historyType === 'tasks' ? `/api/tasks?date=${dateStr}` : `/api/reminders/history?date=${dateStr}`;
+      
+      const offsetMinutes = new Date().getTimezoneOffset();
+      const sign = offsetMinutes > 0 ? '-' : '+';
+      const absOffset = Math.abs(offsetMinutes);
+      const hrs = String(Math.floor(absOffset / 60)).padStart(2, '0');
+      const mins = String(absOffset % 60).padStart(2, '0');
+      const timezoneOffset = `${sign}${hrs}:${mins}`;
+      
+      const endpoint = historyType === 'tasks' ? `/api/tasks?date=${dateStr}&timezoneOffset=${encodeURIComponent(timezoneOffset)}` : `/api/reminders/history?date=${dateStr}&timezoneOffset=${encodeURIComponent(timezoneOffset)}`;
       const res = await axios.get(`${import.meta.env.VITE_API_URL}${endpoint}`, { withCredentials: true });
       if (res.data.success) {
         setHistoryItems(res.data.data);
