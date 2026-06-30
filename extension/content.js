@@ -325,6 +325,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     if (activeReminderId === message.reminderId) {
       blockerOverlay.classList.remove('visible');
       activeReminderId = null;
+      window.postMessage({ type: 'LASMIN_REMINDER_HIDE_FROM_EXT', reminderId: message.reminderId }, '*');
       // Reset UI
       mathChallenge = null;
       btnDismiss.style.display = 'block';
@@ -341,6 +342,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 window.addEventListener('message', (event) => {
   if (event.data && event.data.type === 'LASMIN_REMINDER_DUE') {
     safeSendMessage({ type: 'BROADCAST_BLOCKER', reminders: event.data.reminders });
+  } else if (event.data && event.data.type === 'LASMIN_REMINDER_HIDE_FROM_APP') {
+    safeSendMessage({ type: 'HIDE_BLOCKER', reminderId: event.data.reminderId });
   }
 });
 

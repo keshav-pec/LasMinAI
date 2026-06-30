@@ -111,12 +111,23 @@ export default function RemindersAssistant({ user }) {
         }
       });
 
+      const handleMessage = (event) => {
+        if (event.data && event.data.type === 'LASMIN_REMINDER_HIDE_FROM_EXT') {
+          if (triggeredReminder && triggeredReminder._id === event.data.reminderId) {
+            setTriggeredReminder(null);
+            fetchReminders();
+          }
+        }
+      };
+      window.addEventListener('message', handleMessage);
+
       return () => {
         clearInterval(syncInterval);
         unsubscribe();
+        window.removeEventListener('message', handleMessage);
       };
     }
-  }, [user]);
+  }, [user, triggeredReminder]);
 
   useEffect(() => {
     if (messagesEndRef.current) {
@@ -224,9 +235,10 @@ export default function RemindersAssistant({ user }) {
     }
   };
 
-  const handleDismissReminder = async (id, isBroadcast = false) => {
+    const handleDismissReminder = async (id, isBroadcast = false) => {
     try {
       setTriggeredReminder((prev) => (prev && prev._id === id ? null : prev));
+      window.postMessage({ type: 'LASMIN_REMINDER_HIDE_FROM_APP', reminderId: id }, '*');
       if (!isBroadcast) {
         await axios.put(`${import.meta.env.VITE_API_URL}/api/reminders/${id}/dismiss`, {}, { withCredentials: true });
         broadcastReminderAction('DISMISSED', { id });
@@ -242,6 +254,7 @@ export default function RemindersAssistant({ user }) {
   const handleSnoozeReminder = async (id, isBroadcast = false) => {
     try {
       setTriggeredReminder((prev) => (prev && prev._id === id ? null : prev));
+      window.postMessage({ type: 'LASMIN_REMINDER_HIDE_FROM_APP', reminderId: id }, '*');
       if (!isBroadcast) {
         await axios.put(`${import.meta.env.VITE_API_URL}/api/reminders/${id}/snooze`, {}, { withCredentials: true });
         toast.success("Snoozed for 5 minutes", { icon: '⏰' });

@@ -139,7 +139,7 @@ const intentSchema = {
       properties: {
         title: { type: Type.STRING, description: "A concise title for the task. Do NOT include dates here." },
         description: { type: Type.STRING, description: "Detailed helpful context, instructions, or elaboration provided by the user. If they provide none, leave this empty." },
-        deadline: { type: Type.STRING, description: "ISO 8601 exact date string. NEVER OMIT THIS FIELD. Calculate relative times (e.g. 'today' -> 11:59 PM today)." },
+        deadline: { type: Type.STRING, description: "ISO 8601 exact date string in the user's LOCAL timezone. DO NOT convert to UTC. Calculate relative times (e.g. 'today' -> 23:59 local time today)." },
         complexity: { type: Type.NUMBER, description: "Scale of 1-5 based on user's feeling (1=very easy, 2=easy, 3=normal, 4=hard, 5=very hard). You MUST intelligently extract this." },
         technicalEffort: { type: Type.NUMBER, description: "Estimated time in minutes required. Default 120." }
       },
@@ -152,7 +152,7 @@ const intentSchema = {
         taskIdToUpdate: { type: Type.STRING, description: "The exact _id of the task from the Live Database Context." },
         title: { type: Type.STRING },
         description: { type: Type.STRING },
-        deadline: { type: Type.STRING },
+        deadline: { type: Type.STRING, description: "ISO 8601 date string in the user's LOCAL timezone. DO NOT convert to UTC." },
         complexity: { type: Type.NUMBER, description: "Scale of 1-5 based on user's feeling (1=very easy, 2=easy, 3=normal, 4=hard, 5=very hard)." },
         technicalEffort: { type: Type.NUMBER, description: "Estimated time in minutes required." },
         status: { type: Type.STRING, enum: ["pending", "completed", "overdue"] }
@@ -237,7 +237,7 @@ const reminderIntentSchema = {
       description: "Populate ONLY for CREATE actions.",
       properties: {
         title: { type: Type.STRING, description: "Title of the reminder." },
-        remindAt: { type: Type.STRING, description: "ISO 8601 exact date string." },
+        remindAt: { type: Type.STRING, description: "ISO 8601 exact date string in the user's LOCAL timezone. DO NOT convert to UTC." },
         snoozable: { type: Type.BOOLEAN, description: "Whether the reminder can be snoozed. Default to true." }
       },
       required: ["title", "remindAt"]
@@ -248,7 +248,8 @@ const reminderIntentSchema = {
       properties: {
         reminderId: { type: Type.STRING, description: "The exact _id of the reminder from Live Active Reminders." },
         title: { type: Type.STRING },
-        remindAt: { type: Type.STRING }
+        remindAt: { type: Type.STRING, description: "ISO 8601 exact date string in the user's LOCAL timezone. DO NOT convert to UTC." },
+        status: { type: Type.STRING, enum: ["pending", "dismissed"] }
       },
       required: ["reminderId"]
     },
