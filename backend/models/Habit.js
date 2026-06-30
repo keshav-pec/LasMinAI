@@ -15,7 +15,6 @@ const HabitSchema = new mongoose.Schema({
   },
   frequency: {
     type: String,
-    enum: ['daily', 'weekly'],
     default: 'daily',
   },
   deadlineTime: {

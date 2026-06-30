@@ -46,11 +46,6 @@ router.post('/generate-habits', async (req, res) => {
         continue;
       }
 
-      // 3. Check frequency (skip if weekly and today is not Monday)
-      if (habit.frequency === 'weekly') {
-        const todayDay = userLocalNow.getDay();
-        if (todayDay !== 1) continue;
-      }
 
       // 4. Calculate deadline in UTC using offset arithmetic
       const localDeadlineMs = new Date(`${userDateStr}T${habit.deadlineTime}:00Z`).getTime();

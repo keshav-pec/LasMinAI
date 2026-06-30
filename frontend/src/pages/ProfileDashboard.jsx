@@ -342,17 +342,7 @@ export default function ProfileDashboard({ userData }) {
                                   className="w-full px-3 py-2.5 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:text-neutral-100"
                                 />
                               </div>
-                              <div>
-                                <label className="block text-xs text-neutral-500 mb-1 ml-1">Frequency</label>
-                                <select 
-                                  value={newHabit.frequency} onChange={e => setNewHabit({...newHabit, frequency: e.target.value})}
-                                  className="w-full px-3 py-2.5 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:text-neutral-100"
-                                >
-                                  <option value="daily">Daily</option>
-                                  <option value="weekly">Weekly (Mondays)</option>
-                                </select>
-                              </div>
-                              <div>
+                              <div className="sm:col-span-2">
                                 <label className="block text-xs text-neutral-500 mb-1 ml-1">Daily Deadline Time</label>
                                 <input 
                                   type="time" required
